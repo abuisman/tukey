@@ -20,8 +20,12 @@ Or install it yourself as:
 
 # Usage
 
-First a quick example:
+First a quick demonstration:
 
+![screencast](Tukey.gif)
+
+
+Then a quick example:
 
 ```ruby
     report = DataSet.new(label: 'Year star report')
