@@ -1,3 +1,7 @@
+![John Tukey - Statistician and inventor of the 'bit'](John_Tukey.jpg)
+
+*John Tukey - Statistician and inventor of the 'bit'*
+
 # Tukey
 
 Tukey is provides DataSets which can be put in a tree. This way you can store partial results of calculations or other data and, for example, create charts, tables or other presentations.
