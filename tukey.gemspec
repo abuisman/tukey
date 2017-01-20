@@ -7,11 +7,11 @@ Gem::Specification.new do |spec|
   spec.name          = "tukey"
   spec.version       = Tukey::VERSION
   spec.authors       = ["Achilleas Buisman"]
-  spec.email         = ["accounts@abuisman.nl"]
+  spec.email         = ["tukey@abuisman.nl"]
 
-  spec.summary       = %q{TODO: Write a short summary, because Rubygems requires one.}
-  spec.description   = %q{TODO: Write a longer description or delete this line.}
-  spec.homepage      = "TODO: Put your gem's website or public repo URL here."
+  spec.summary       = "DataSets for putting data in a tree of sets"
+  spec.description   = "Tukey is provides DataSets which can be put in a tree. This way you can store partial results of calculations or other data and, for example, create charts, tables or other presentations."
+  spec.homepage      = "https://github.com/abuisman/tukey"
   spec.license       = "MIT"
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'

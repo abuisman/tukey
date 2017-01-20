@@ -1,5 +1,2 @@
-require "tukey/version"
-
-module Tukey
-  # Your code goes here...
-end
+require File.join(File.dirname(__FILE__), "tukey", "version")
+require File.join(File.dirname(__FILE__), "tukey", "data_set")
