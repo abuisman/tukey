@@ -1,3 +1,5 @@
+[![Gem Version](https://badge.fury.io/rb/tukey.svg)](https://badge.fury.io/rb/tukey)
+
 ![John Tukey - Statistician and inventor of the 'bit'](John_Tukey.jpg)
 
 *John Tukey - Statistician and inventor of the 'bit'*
