@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ["tukey@abuisman.nl"]
 
   spec.summary       = "DataSets for putting data in a tree of sets"
-  spec.description   = "Tukey is provides DataSets which can be put in a tree. This way you can store partial results of calculations or other data and, for example, create charts, tables or other presentations."
+  spec.description   = "Tukey provides DataSets which can be put in a tree. This way you can store partial results of calculations or other data and, for example, create charts, tables or other presentations."
   spec.homepage      = "https://github.com/abuisman/tukey"
   spec.license       = "MIT"
 
