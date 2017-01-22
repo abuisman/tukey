@@ -2,8 +2,8 @@ require 'spec_helper'
 
 describe DataSet do
   let(:data_set_nil) { DataSet.new(label: 'I am nil', data: nil) }
-  let(:data_set_leaf_junk_food) { DataSet.new(label: 'Junk food', data: 123.4) }
   let(:data_set_leaf_super_foods) { DataSet.new(label: 'Super foods', data: 123.4) }
+  let(:data_set_leaf_junk_food) { DataSet.new(label: 'Junk food', data: 123.4) }
   let(:data_set_branch_food) { DataSet.new(label: 'Food', data: [data_set_leaf_junk_food]) }
   let!(:data_set_root) { DataSet.new(label: 'Expenses per year', data: [data_set_branch_food]) }
 
@@ -994,18 +994,29 @@ describe DataSet do
   end
 
   describe '#find' do
-    let(:descendant_data_set) { DataSet.new }
-    subject { DataSet.new(data: [descendant_data_set]) }
+    context 'block given' do
+      subject { data_set_root.find { |d| d.label.name == 'Junk food' } }
 
-    context 'given the id of a descendant data_set' do
-      it 'finds the data_set with the given id' do
-        expect(subject.find(descendant_data_set.id)).to eq descendant_data_set
-      end
+      it { is_expected.to eq data_set_leaf_junk_food }
     end
 
-    context 'given its own id' do
-      it 'returns itself' do
-        expect(subject.find(subject.id)).to eq subject
+    context 'subtree_id directly passed' do
+      context 'given the id of a descendant data_set' do
+        it 'finds the data_set with the given id' do
+          expect(data_set_root.find(data_set_branch_food.id)).to eq data_set_branch_food
+        end
+      end
+
+      context 'given its own id' do
+        it 'returns itself' do
+          expect(data_set_root.find(data_set_root.id)).to eq data_set_root
+        end
+      end
+
+      context 'given id that is not in the tree' do
+        it 'returns nil' do
+          expect(data_set_root.find(12332212331)).to eq nil
+        end
       end
     end
   end

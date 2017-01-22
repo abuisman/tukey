@@ -121,17 +121,15 @@ class DataSet
     end
   end
 
-  def find(subtree_id)
-    if id == subtree_id
-      self
-    elsif data_array?
-      data.each do |child|
-        match = child.find(subtree_id)
-        return match if match
-      end
-
-      nil
+  def find(subtree_id = nil, &block)
+    return super if block_given?
+    return self if id == subtree_id
+    return nil unless data_array?
+    data.each do |child|
+      match = child.find(subtree_id)
+      return match if match
     end
+    nil
   end
 
   def <=>(other)
