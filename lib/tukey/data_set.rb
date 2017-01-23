@@ -132,6 +132,28 @@ class DataSet
     nil
   end
 
+  def find_by(query)
+    return find { |s| s.to_comparable_h.deep_merge(query) == s.to_comparable_h }
+  end
+
+  def to_comparable_h
+    ch = {
+      id: self.id,
+    }
+
+    ch[:data] = data unless data_array?
+
+    if label
+      ch[:label] = {
+        id: label.id,
+        name: label.name,
+        meta: label.meta.to_h,
+      }
+    end
+
+    ch
+  end
+
   def <=>(other)
     return 0 if data == other.data && label == other.label
     return 1 if data && other.data.nil?

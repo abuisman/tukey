@@ -1020,4 +1020,45 @@ describe DataSet do
       end
     end
   end
+
+  describe '#to_comparable_h' do
+    let(:node_with_meta) { DataSet.new(data: 20, label: { id: "Meta", name: "My label has meta", meta: { store: "Mc Do" } } ) }
+
+    it 'creates a hash WITH the atomic data' do
+      expect(node_with_meta.to_comparable_h).to eq( {
+        id: node_with_meta.id,
+        data: 20,
+        label: {
+          id: "Meta",
+          name: "My label has meta",
+          meta: {
+            store: 'Mc Do'
+          }
+        }
+      })
+    end
+
+    it 'creates a hash WITHOUT data when data is enumerable' do
+      expect(data_set_root.to_comparable_h).to eq({
+        id: data_set_root.id,
+        label: {
+          id: 'Expenses per year',
+          name: 'Expenses per year',
+          meta: {},
+        }
+      })
+    end
+  end
+
+  describe '#find_by' do
+    let(:node_with_meta) { DataSet.new(data: 20, label: { id: "Meta", name: "My label has meta", meta: { store: "Mc Do" } } ) }
+
+    before { data_set_branch_food << node_with_meta }
+
+    it 'lets you find nodes by properties of both the set and the label' do
+      expect(data_set_root.find_by(label: { meta: { store: 'Mc Do' } })).to eq node_with_meta
+      expect(data_set_root.find_by(label: { name: 'Food' })).to eq data_set_branch_food
+      expect(data_set_root.find_by(data: 123.4)).to eq(data_set_leaf_junk_food)
+    end
+  end
 end
