@@ -1,3 +1,3 @@
 module Tukey
-  VERSION = "0.9.1RC"
+  VERSION = "1.0.0"
 end
