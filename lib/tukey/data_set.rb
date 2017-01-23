@@ -120,18 +120,20 @@ class DataSet
         condition_met = set.leaf? ? (set.label.id == leaf_label_id) : nil
       end
 
+      set_dup = set.deep_dup
+
       if condition_met == true
-        parent_set.add_item(set.deep_dup)
+        parent_set.add_item(set_dup)
       elsif condition_met.nil? && set.data_array?
-        deep_filter_result = set.deep_dup.filter(leaf_label_id, keep_leafs: keep_leafs, orphan_strategy: orphan_strategy, &block)
+        deep_filter_result = set_dup.filter(leaf_label_id, keep_leafs: keep_leafs, orphan_strategy: orphan_strategy, &block)
         parent_set.add_item(deep_filter_result) if deep_filter_result.data
       elsif condition_met == false && set.data_array?
         if orphan_strategy == :adopt
-          deep_filter_result = set.deep_dup.filter(leaf_label_id, keep_leafs: keep_leafs, orphan_strategy: orphan_strategy, &block)
+          deep_filter_result = set_dup.filter(leaf_label_id, keep_leafs: keep_leafs, orphan_strategy: orphan_strategy, &block)
           deep_filter_result.children.each { |c| parent_set.add_item(c) } if deep_filter_result.data
         end
       elsif condition_met.nil? && set.leaf?
-        parent_set.add_item(set) if keep_leafs
+        parent_set.add_item(set_dup) if keep_leafs
       end
 
       parent_set
