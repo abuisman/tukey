@@ -111,8 +111,27 @@ class DataSet
     children.map(&:leaf_labels).flatten.uniq
   end
 
+  # Filter method that returns a new (dup) data_set with certain nodes filtered out
+  # Filtering is done through either passing:
+  #   1. a 'leaf_label_id'. All matching nodes will be present in the new set
+  #   in their original position in the tree.
+  #
+  #   2. by passing a block that returns either `true`, `nil` or `false` for a given node:
+  #         true: A node is kept, _including its children_
+  #         nil: The matcher is indifferent about the node and will continue recursing the tree
+  #               a. When at some point `true` is returned for a descendant node the whole branch will be
+  #                 kept up to and including the node for which the block returned `true`.
+  #               b. If `true` is not returned the whole branch will not be included in the filter result,
+  #                 unless the option `keep_leafs` was set to true, in which case only nodes that were cut
+  #                 off with `false` will be excluded in the result.
+  #         false: When the block returns false for a given node that node is taken out of the results
+  #                this inludes its children, unless the option `orphan_strategy` was set to `:adopt` in
+  #                which case the children will be filtered using the same block and appended to first ancestor
+  #                node that was not excluded by the filter.
+  #
   def filter(leaf_label_id = nil, keep_leafs: false, orphan_strategy: :destroy, &block)
     fail ArgumentError, 'No block and no leaf_label_id passed' if !block_given? && leaf_label_id.nil?
+
     self.data.each_with_object(DataSet.new(id: id, label: label.deep_dup)) do |set, parent_set|
       if block_given?
         condition_met = yield(parent_set, set)
@@ -122,16 +141,22 @@ class DataSet
 
       set_dup = set.deep_dup
 
+      # We want to have this node and its children
       if condition_met == true
         parent_set.add_item(set_dup)
-      elsif condition_met.nil? && set.data_array?
+      # Complex looking clause, but useful for performance and DRY-ness
+      elsif set.data_array? && (condition_met.nil? || (condition_met == false && orphan_strategy == :adopt))
         deep_filter_result = set_dup.filter(leaf_label_id, keep_leafs: keep_leafs, orphan_strategy: orphan_strategy, &block)
-        parent_set.add_item(deep_filter_result) if deep_filter_result.data
-      elsif condition_met == false && set.data_array?
-        if orphan_strategy == :adopt
-          deep_filter_result = set_dup.filter(leaf_label_id, keep_leafs: keep_leafs, orphan_strategy: orphan_strategy, &block)
-          deep_filter_result.children.each { |c| parent_set.add_item(c) } if deep_filter_result.data
+
+        # Here is where either the taking along or adopting of nodes happens
+        if deep_filter_result.data
+          # Filtering underlying children and adding the potential filter result to parent.
+          parent_set.add_item(deep_filter_result) if condition_met.nil?
+
+          # We are losing the node, but since 'orphan_strategy' == :adopt we will adopt the orphans that match the filter
+          deep_filter_result.children.each { |c| parent_set.add_item(c) } if condition_met == false
         end
+      # We are indifferent to the match (nil), but since the node is a leaf we will keep it
       elsif condition_met.nil? && set.leaf?
         parent_set.add_item(set_dup) if keep_leafs
       end
