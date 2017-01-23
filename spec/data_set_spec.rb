@@ -1061,4 +1061,20 @@ describe DataSet do
       expect(data_set_root.find_by(data: 123.4)).to eq(data_set_leaf_junk_food)
     end
   end
+
+  describe '#ancestors' do
+    it 'returns the ancestors of a dataset top down' do
+      expect(data_set_root.ancestors).to eq []
+      expect(data_set_branch_food.ancestors).to eq [data_set_root]
+      expect(data_set_leaf_junk_food.ancestors).to eq [data_set_root, data_set_branch_food]
+    end
+  end
+
+  describe '#label_path' do
+    it 'returns the labels of the ancestors and self in order' do
+      expect(data_set_root.label_path).to eq [data_set_root.label]
+      expect(data_set_branch_food.label_path).to eq [data_set_root.label, data_set_branch_food.label]
+      expect(data_set_leaf_junk_food.label_path).to eq [data_set_root.label, data_set_branch_food.label, data_set_leaf_junk_food.label]
+    end
+  end
 end

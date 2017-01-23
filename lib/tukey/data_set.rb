@@ -51,6 +51,23 @@ class DataSet
     parent.children.reject { |c| c == self }
   end
 
+  def ancestors
+    return [] if parent.nil?
+    ancs = []
+    par = parent
+    require 'pry'
+    until par.nil?
+      puts par.label.name
+      ancs.push par
+      par = par.parent
+    end
+    ancs.reverse
+  end
+
+  def label_path
+    [ancestors, self].flatten.map(&:label)
+  end
+
   def oneling?
     siblings.none?
   end
