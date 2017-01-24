@@ -437,19 +437,6 @@ describe DataSet do
     end
   end
 
-  describe '#compact_onelings' do
-    before do
-      data_set_branch_food.add_item(data_set_leaf_super_foods)
-    end
-
-    it 'leaves roots in place, but takes out onelings from the tree' do
-      compacted = data_set_root.compact_onelings
-
-      expect(compacted.label).to eq data_set_root.label
-      expect(compacted.children).to match_array [data_set_leaf_super_foods, data_set_leaf_junk_food]
-    end
-  end
-
   describe '#pretty_inspect' do
     it 'returns a string with at least all the label names within it' do
       expect(data_set_root.pretty_inspect).to include 'Junk food'
