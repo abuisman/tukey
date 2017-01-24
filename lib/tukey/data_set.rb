@@ -72,10 +72,6 @@ class DataSet
     siblings.none?
   end
 
-  def compact_onelings
-    filter(orphan_strategy: :adopt, keep_leafs: true) { |p, d| false if d.oneling? && !d.root? }
-  end
-
   def root?
     parent.nil?
   end
