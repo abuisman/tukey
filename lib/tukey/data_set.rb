@@ -260,27 +260,6 @@ class DataSet
     set.data
   end
 
-  def combine(other_data_set, operator)
-    warn "[DEPRECATION] `DataSet#combine` is deprecated.  Please use `DataSet#merge` with a block instead."
-    merge(other_data_set) do |_, own_value, other_value|
-      # Always return nil if both values are nil (prevents summed data sets of being wrongly considered unempty and thus not hidden)
-      next nil if own_value.nil? && other_value.nil?
-
-      case operator.to_sym
-      when :+, :-
-        # When adding or subtracting treat nil (unknown) values as zero, instead of returning nil as summation result
-        own_value ||= 0.0
-        other_value ||= 0.0
-      when :/
-        # Prevent division by zero resulting in NaN/Infinity values
-        other_value = nil if other_value&.zero?
-      end
-
-      next nil if own_value.nil? || other_value.nil?
-      own_value.send(operator, other_value)
-    end
-  end
-
   def transform_labels!(&block)
     self.label = yield(label)
     data.each { |d| d.transform_labels!(&block) } if data_array?
