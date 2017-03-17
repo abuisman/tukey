@@ -261,15 +261,24 @@ class DataSet
   end
 
   def combine(other_data_set, operator)
-    combined_data_set = dup
-    if data_array? && other_data_set.data_array?
-      combined_data_set.data = combine_data_array(other_data_set.children, operator)
-    elsif !data_array? && !other_data_set.data_array?
-      combined_data_set.data = combine_data_value(other_data_set.value, operator)
-    else
-      fail ArgumentError, "Can't combine array DataSet with value DataSet"
+    warn "[DEPRECATION] `DataSet#combine` is deprecated.  Please use `DataSet#merge` with a block instead."
+    merge(other_data_set) do |_, own_value, other_value|
+      # Always return nil if both values are nil (prevents summed data sets of being wrongly considered unempty and thus not hidden)
+      next nil if own_value.nil? && other_value.nil?
+
+      case operator.to_sym
+      when :+, :-
+        # When adding or subtracting treat nil (unknown) values as zero, instead of returning nil as summation result
+        own_value ||= 0.0
+        other_value ||= 0.0
+      when :/
+        # Prevent division by zero resulting in NaN/Infinity values
+        other_value = nil if other_value&.zero?
+      end
+
+      next nil if own_value.nil? || other_value.nil?
+      own_value.send(operator, other_value)
     end
-    combined_data_set
   end
 
   def transform_labels!(&block)
@@ -285,6 +294,33 @@ class DataSet
       self.data = yield(value)
     end
     self
+  end
+
+  def merge(other_data_set, &block)
+    merged_data_set = dup
+    if data_array? && other_data_set.data_array? # Merge sets
+      other_children = other_data_set.children.dup
+      merged_children = children.map do |child|
+        other_child = other_children.find { |ods| ods.label == child.label }
+        if other_child
+          other_children.delete(other_child)
+          child.merge(other_child, &block)
+        else
+          child
+        end
+      end
+      merged_children += other_children # The remaining other children (without matching child in this data set)
+      merged_data_set.data = merged_children
+    elsif !data_array? && !other_data_set.data_array? # Merge values
+      if block_given? # Combine data using block
+        merged_data_set.data = yield(label, value, other_data_set.value)
+      else # Simply overwrite data with other data
+        merged_data_set.data = other_data_set.value
+      end
+    else
+      fail ArgumentError, "Can't merge array DataSet with value DataSet"
+    end
+    merged_data_set
   end
 
   def data_array?
@@ -324,41 +360,6 @@ class DataSet
 
   def dup_value(value)
     value.is_a?(Numeric) ? value : value.dup
-  end
-
-  def combine_data_array(other_children, operator)
-    other_children = other_children.dup
-    result = children.map do |child|
-      other_child = other_children.find { |ods| ods.label == child.label }
-      if other_child
-        other_children.delete(other_child)
-        child.combine(other_child, operator)
-      else
-        child
-      end
-    end
-    result += other_children # The remaining other children (without matching child in this data set)
-    result
-  end
-
-  def combine_data_value(other_value, operator)
-    own_value = value
-
-    # Always return nil if both values are nil (prevents summed data sets of being wrongly considered unempty and thus not hidden)
-    return nil if own_value.nil? && other_value.nil?
-
-    case operator.to_sym
-    when :+, :-
-      # When adding or subtracting treat nil (unknown) values as zero, instead of returning nil as summation result
-      own_value ||= 0.0
-      other_value ||= 0.0
-    when :/
-      # Prevent division by zero resulting in NaN/Infinity values
-      other_value = nil if other_value&.zero?
-    end
-
-    return nil if own_value.nil? || other_value.nil?
-    own_value.send(operator, other_value)
   end
 end
 

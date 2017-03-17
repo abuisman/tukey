@@ -869,6 +869,68 @@ describe DataSet do
     end
   end
 
+  describe '#merge' do
+    let(:set1) do
+      DataSet.new(label: 'Root', data: [
+        DataSet.new(label: 'Squirrels', data: 2),
+        DataSet.new(label: 'Trees', data: [
+          DataSet.new(label: 'Apple', data: 5),
+          DataSet.new(label: 'Pear', data: 3),
+        ]),
+        DataSet.new(label: 'Birds', data: 8),
+      ])
+    end
+
+    let(:set2) do
+      DataSet.new(label: 'Root', data: [
+        DataSet.new(label: 'Trees', data: [
+          DataSet.new(label: 'Pear', data: 4),
+          DataSet.new(label: 'Peach', data: 5),
+        ]),
+        DataSet.new(label: 'Squirrels', data: 1),
+        DataSet.new(label: 'People', data: 2),
+      ])
+    end
+
+    context 'without block' do
+      subject { set1.merge(set2) }
+
+      it 'merges the two sets overwriting values for the same label (path)' do
+        expect(subject).to eq(
+          DataSet.new(label: 'Root', data: [
+            DataSet.new(label: 'Squirrels', data: 1),
+            DataSet.new(label: 'Trees', data: [
+              DataSet.new(label: 'Apple', data: 5),
+              DataSet.new(label: 'Pear', data: 4),
+              DataSet.new(label: 'Peach', data: 5),
+            ]),
+            DataSet.new(label: 'Birds', data: 8),
+            DataSet.new(label: 'People', data: 2),
+          ])
+        )
+      end
+    end
+
+    context 'with block' do
+      subject { set1.merge(set2) { |l, v1, v2| v1 + v2 } }
+
+      it 'merges the two sets applying block to values for the same label (path)' do
+        expect(subject).to eq(
+          DataSet.new(label: 'Root', data: [
+            DataSet.new(label: 'Squirrels', data: 3),
+            DataSet.new(label: 'Trees', data: [
+              DataSet.new(label: 'Apple', data: 5),
+              DataSet.new(label: 'Pear', data: 7),
+              DataSet.new(label: 'Peach', data: 5),
+            ]),
+            DataSet.new(label: 'Birds', data: 8),
+            DataSet.new(label: 'People', data: 2),
+          ])
+        )
+      end
+    end
+  end
+
   describe '#combine' do
     context 'when both sets have an array of data' do
       let(:moe) { DataSet.new(label: 'Moe') }
