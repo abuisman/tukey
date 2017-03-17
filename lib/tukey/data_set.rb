@@ -198,7 +198,7 @@ class DataSet
     return 0 if data == other.data && label == other.label
     return 1 if data && other.data.nil?
     return -1 if data.nil? && other.data
-    return label.id <=> other.label.id if label.id <=> other.label.id
+    return label.id <=> other.label.id if label && other.label && label.id <=> other.label.id
     return data <=> other.data if data.is_a?(Numeric) && other.data.is_a?(Numeric)
     data.size <=> other.data.size
   end
