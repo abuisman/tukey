@@ -272,6 +272,21 @@ class DataSet
     combined_data_set
   end
 
+  def transform_labels!(&block)
+    self.label = yield(label)
+    data.each { |d| d.transform_labels!(&block) } if data_array?
+    self
+  end
+
+  def transform_values!(&block)
+    if data_array?
+      self.data = data.map { |d| d.transform_values!(&block) }
+    else
+      self.data = yield(value)
+    end
+    self
+  end
+
   def data_array?
     data.is_a? Array
   end

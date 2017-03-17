@@ -835,6 +835,40 @@ describe DataSet do
     end
   end
 
+  describe '#transform_labels!' do
+    subject do
+      DataSet.new(label: 'root', data: [
+        DataSet.new(label: 'aaa', data: 3),
+        DataSet.new(label: 'bbb', data: 5),
+        DataSet.new(label: 'ccc', data: 7),
+      ])
+    end
+
+    it 'applies the given block to the labels of every (sub) set' do
+      subject.transform_labels! { |l| DataSet::Label.new(l.name.upcase) }
+      expect(subject).to eq(
+        DataSet.new(label: 'ROOT', data: [
+          DataSet.new(label: 'AAA', data: 3),
+          DataSet.new(label: 'BBB', data: 5),
+          DataSet.new(label: 'CCC', data: 7),
+        ])
+      )
+    end
+  end
+
+  describe '#transform_values!' do
+    subject do
+      DataSet.new(data: [DataSet.new(data: 3), DataSet.new(data: 5), DataSet.new(data: 7)])
+    end
+
+    it 'applies the given block to the values (of the leafs)' do
+      subject.transform_values! { |v| v * 10 }
+      expect(subject).to eq(
+        DataSet.new(data: [DataSet.new(data: 30), DataSet.new(data: 50), DataSet.new(data: 70)])
+      )
+    end
+  end
+
   describe '#combine' do
     context 'when both sets have an array of data' do
       let(:moe) { DataSet.new(label: 'Moe') }
