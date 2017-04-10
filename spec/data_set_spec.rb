@@ -835,135 +835,98 @@ describe DataSet do
     end
   end
 
-  describe '#combine' do
-    context 'when both sets have an array of data' do
-      let(:moe) { DataSet.new(label: 'Moe') }
-      let(:homer) { DataSet.new(label: 'Homer', data: [moe]) }
-      let(:marge) { DataSet.new(label: 'Marge') }
-      let(:set1) { DataSet.new(label: 'The family', data: [homer, marge]) }
+  describe '#transform_labels!' do
+    subject do
+      DataSet.new(label: 'root', data: [
+        DataSet.new(label: 'aaa', data: 3),
+        DataSet.new(label: 'bbb', data: 5),
+        DataSet.new(label: 'ccc', data: 7),
+      ])
+    end
 
-      let(:milhouse) { DataSet.new(label: 'Milhouse') }
-      let(:bart) { DataSet.new(label: 'Bart', data: [milhouse]) }
-      let(:lisa) { DataSet.new(label: 'Lisa') }
-      let(:set2) { DataSet.new(data: [bart, lisa]) }
+    it 'applies the given block to the labels of every (sub) set' do
+      subject.transform_labels! { |l| DataSet::Label.new(l.name.upcase) }
+      expect(subject).to eq(
+        DataSet.new(label: 'ROOT', data: [
+          DataSet.new(label: 'AAA', data: 3),
+          DataSet.new(label: 'BBB', data: 5),
+          DataSet.new(label: 'CCC', data: 7),
+        ])
+      )
+    end
+  end
 
-      subject { set1.combine(set2, :+) }
+  describe '#transform_values!' do
+    subject do
+      DataSet.new(data: [DataSet.new(data: 3), DataSet.new(data: 5), DataSet.new(data: 7)])
+    end
 
-      it 'returns a data_set with the label of the set combine was called on' do
-        expect(subject.label.id).to eq 'The family'
-      end
+    it 'applies the given block to the values (of the leafs)' do
+      subject.transform_values! { |v| v * 10 }
+      expect(subject).to eq(
+        DataSet.new(data: [DataSet.new(data: 30), DataSet.new(data: 50), DataSet.new(data: 70)])
+      )
+    end
+  end
 
-      it 'has merged the array items onto each other according to level' do
-        expect(subject.children).to match_array [homer, marge, lisa, bart]
-      end
+  describe '#merge' do
+    let(:set1) do
+      DataSet.new(label: 'Root', data: [
+        DataSet.new(label: 'Squirrels', data: 2),
+        DataSet.new(label: 'Trees', data: [
+          DataSet.new(label: 'Apple', data: 5),
+          DataSet.new(label: 'Pear', data: 3),
+        ]),
+        DataSet.new(label: 'Birds', data: 8),
+      ])
+    end
 
-      it 'has not entered duplicates twice' do
-        set2 << homer
+    let(:set2) do
+      DataSet.new(label: 'Root', data: [
+        DataSet.new(label: 'Trees', data: [
+          DataSet.new(label: 'Pear', data: 4),
+          DataSet.new(label: 'Peach', data: 5),
+        ]),
+        DataSet.new(label: 'Squirrels', data: 1),
+        DataSet.new(label: 'People', data: 2),
+      ])
+    end
 
-        expect(subject.children).to match_array [homer, marge, lisa, bart]
-      end
+    context 'without block' do
+      subject { set1.merge(set2) }
 
-      it 'merges underlying children of duplicates however' do
-        homer2 = homer.deep_dup
-        lenny = DataSet.new(label: "Lenny")
-        homer2.data = [lenny]
-        set2 << homer2
-
-        subject_homer = subject.children.find { |s| s.label.id == 'Homer' }
-        expect(subject_homer.children).to match_array [moe, lenny]
+      it 'merges the two sets overwriting values for the same label (path)' do
+        expect(subject).to eq(
+          DataSet.new(label: 'Root', data: [
+            DataSet.new(label: 'Squirrels', data: 1),
+            DataSet.new(label: 'Trees', data: [
+              DataSet.new(label: 'Apple', data: 5),
+              DataSet.new(label: 'Pear', data: 4),
+              DataSet.new(label: 'Peach', data: 5),
+            ]),
+            DataSet.new(label: 'Birds', data: 8),
+            DataSet.new(label: 'People', data: 2),
+          ])
+        )
       end
     end
 
-    context 'when both sets have non-array data' do
-      let(:set1) { DataSet.new(label: "Yearly", data: 100) }
-      let(:set2) { DataSet.new(label: "Monthly", data: 150) }
-      let(:operator) { :+ }
+    context 'with block' do
+      subject { set1.merge(set2) { |l, v1, v2| v1 + v2 } }
 
-      subject { set1.combine(set2, operator) }
-
-      it 'returns a new data_set with the label of the set combine was called on' do
-        expect(subject.label.id).to eq 'Yearly'
-      end
-
-      it 'returns nil if both data_sets have nil as data' do
-        set1.data = nil
-        set2.data = nil
-        expect(subject.data).to eq nil
-      end
-
-      describe 'calculation results' do
-        subject { set1.combine(set2, operator).value }
-
-        context 'operator for addition' do
-          let(:operator) { :+ }
-
-          it { is_expected.to eq 250 }
-        end
-
-        context 'operator for subtraction' do
-          let(:operator) { :- }
-
-          it { is_expected.to eq -50 }
-        end
-
-        context 'operator for division' do
-          context 'divisible numbers given' do
-            let(:operator) { :/ }
-
-            it { is_expected.to eq 100 / 150 }
-          end
-
-          context 'divisible numbers given' do
-            let(:operator) { :/ }
-            let(:set2) { DataSet.new(data: 0) }
-
-            it { is_expected.to eq nil }
-          end
-        end
-
-        context 'un-hardcoded operators' do
-          context 'operator for multiplications' do
-            let(:operator) { :* }
-
-            it { is_expected.to eq 15000 }
-          end
-
-          context 'either data set had nil as value' do
-            let(:operator) { :something_not_hardcoded }
-
-            it 'returns nil' do
-              set1.data = nil
-              expect(subject).to eq nil
-            end
-          end
-        end
-      end
-
-      context 'when both sets have children with atomic values' do
-        let(:january1) { DataSet.new(label: "January", data: 100) }
-        let(:february) { DataSet.new(label: "February", data: 600) }
-        let(:set1) { DataSet.new(label: "Office 1", data: [january1, february]) }
-
-        let(:january2) { DataSet.new(label: "January", data: 150) }
-        let(:set2) { DataSet.new(label: "Office 2", data: [january2]) }
-
-        it 'combines the arrays and applies the operator on the atomic children' do
-          expect(subject.children.size).to eq 2
-          expect(subject.label.name).to eq 'Office 1'
-          expect(subject.children.find { |s| s.label.name == 'January' }.value).to eq 250
-          expect(subject.children.find { |s| s.label.name == 'February' }.value).to eq 600
-        end
-      end
-
-      context 'when one set has array data and the other atomic data' do
-        let(:set1) { DataSet.new(label: "Yearly", data: [DataSet.new(label: 'January', data: 123)]) }
-        let(:set2) { DataSet.new(label: "Monthly", data: 150) }
-        let(:operator) { :anything }
-
-        it 'raises an error in either direction' do
-          expect { set1.combine(set2, operator) }.to raise_error(ArgumentError)
-          expect { set2.combine(set1, operator) }.to raise_error(ArgumentError)
-        end
+      it 'merges the two sets applying block to values for the same label (path)' do
+        expect(subject).to eq(
+          DataSet.new(label: 'Root', data: [
+            DataSet.new(label: 'Squirrels', data: 3),
+            DataSet.new(label: 'Trees', data: [
+              DataSet.new(label: 'Apple', data: 5),
+              DataSet.new(label: 'Pear', data: 7),
+              DataSet.new(label: 'Peach', data: 5),
+            ]),
+            DataSet.new(label: 'Birds', data: 8),
+            DataSet.new(label: 'People', data: 2),
+          ])
+        )
       end
     end
   end
