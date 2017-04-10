@@ -550,129 +550,140 @@ describe DataSet do
   # rubocop:enable Style/SingleLineBlockParams
 
   describe '#filter' do
-    let(:label_2013) { DataSet::Label.new('2013', id: ['2013-01-01', '2013-12-31'], meta: { started_on: '2013-01-01', ended_on: '2013-12-31' }) }
-    let(:label_2014) { DataSet::Label.new('2014', id: ['2014-01-01', '2014-12-31'], meta: { started_on: '2014-01-01', ended_on: '2014-12-31' }) }
-    let(:label_2015) { DataSet::Label.new('2015', id: ['2015-01-01', '2015-12-31'], meta: { started_on: '2015-01-01', ended_on: '2015-12-31' }) }
     subject { DataSet.new(label: 'Root', data: []) }
 
-    before do
-      bob_nl = DataSet.new(label: 'Bobs bouw NL', data: [])
-      bob_nl << DataSet.new(label: 'Amsterdam', data: [DataSet.new(label: label_2014, data: 1), DataSet.new(label: label_2013, data: 33)])
-      bob_nl << DataSet.new(label: 'Nijmegen', data: [DataSet.new(label: label_2015, data: 100), DataSet.new(label: label_2014, data: 2)])
-
-      bob_uk = DataSet.new(label: 'Bobs bouw UK', data: [])
-      bob_uk << DataSet.new(label: 'London', data: [DataSet.new(label: label_2014, data: 3), DataSet.new(label: label_2013, data: 44)])
-      bob_uk << DataSet.new(label: 'Reading', data: [DataSet.new(label: label_2014, data: 4), DataSet.new(label: label_2014, data: 5)])
-
-      bob_de = DataSet.new(label: 'Bobs bouw DE', data: [])
-      bob_de << DataSet.new(label: 'Berlin', data: [DataSet.new(label: label_2013, data: 55), DataSet.new(label: label_2014, data: 6)])
-      bob_de << DataSet.new(label: 'Köln', data: [DataSet.new(label: label_2014, data: 7), DataSet.new(label: label_2015, data: 200)])
-
-      subject << bob_nl
-      subject << bob_uk
-      subject << bob_de
-    end
-
-    context 'leaf_label_id given' do
+    context 'empty data_set given' do
       let(:expected_ds) { DataSet.new(label: 'Root', data: []) }
 
-      context 'existing leaf_label_id given' do
-        before do
-          bob_nl = DataSet.new(label: 'Bobs bouw NL', data: [])
-          bob_nl.add_item DataSet.new(label: 'Amsterdam', data: [DataSet.new(label: label_2013, data: 33)])
-
-          bob_uk = DataSet.new(label: 'Bobs bouw UK', data: [])
-          bob_uk.add_item DataSet.new(label: 'London', data: [DataSet.new(label: label_2013, data: 44)])
-
-          bob_de = DataSet.new(label: 'Bobs bouw DE', data: [])
-          bob_de.add_item DataSet.new(label: 'Berlin', data: [DataSet.new(label: label_2013, data: 55)])
-
-          expected_ds.add_item(bob_nl)
-          expected_ds.add_item(bob_uk)
-          expected_ds.add_item(bob_de)
-        end
-
-        it 'returns the correct subset as a new dataset' do
-          filter_result = subject.filter(label_2013.id)
-          expect(filter_result == expected_ds).to eq true
-        end
-      end
-
-      context 'non-existing leaf_label_id given' do
-        it 'returns an empty dataset with the same label as the set .filter was called on' do
-          filter_result = subject.filter('You shall not find... me')
-          expect(filter_result.label).to eq subject.label
-          expect(filter_result.data).to be_nil
-        end
+      it 'returns a duplicate of the unmodified data_set' do
+        expect(subject.filter { :foobar }).to eq(expected_ds)
       end
     end
 
-    context 'options' do
-      context 'orphan_strategy: :adopt' do
-        it 'adds children of rejected nodes to their parent' do
-          result_set = subject.filter(orphan_strategy: :adopt) do |parent, child|
-            if child.label.id == 'Bobs bouw NL'
-              false
-            elsif child.leaf?
-              true
-            end
-          end
+    context 'non empty data_set given' do
+      let(:label_2013) { DataSet::Label.new('2013', id: ['2013-01-01', '2013-12-31'], meta: { started_on: '2013-01-01', ended_on: '2013-12-31' }) }
+      let(:label_2014) { DataSet::Label.new('2014', id: ['2014-01-01', '2014-12-31'], meta: { started_on: '2014-01-01', ended_on: '2014-12-31' }) }
+      let(:label_2015) { DataSet::Label.new('2015', id: ['2015-01-01', '2015-12-31'], meta: { started_on: '2015-01-01', ended_on: '2015-12-31' }) }
 
-          expect(result_set.children.map(&:label).map(&:id)).to include('Nijmegen')
-          expect(result_set.children.map(&:label).map(&:id)).to include('Amsterdam')
-          expect(result_set.children.map(&:label).map(&:id)).to_not include('Bobs bouw NL')
-        end
+      before do
+        bob_nl = DataSet.new(label: 'Bobs bouw NL', data: [])
+        bob_nl << DataSet.new(label: 'Amsterdam', data: [DataSet.new(label: label_2014, data: 1), DataSet.new(label: label_2013, data: 33)])
+        bob_nl << DataSet.new(label: 'Nijmegen', data: [DataSet.new(label: label_2015, data: 100), DataSet.new(label: label_2014, data: 2)])
+
+        bob_uk = DataSet.new(label: 'Bobs bouw UK', data: [])
+        bob_uk << DataSet.new(label: 'London', data: [DataSet.new(label: label_2014, data: 3), DataSet.new(label: label_2013, data: 44)])
+        bob_uk << DataSet.new(label: 'Reading', data: [DataSet.new(label: label_2014, data: 4), DataSet.new(label: label_2014, data: 5)])
+
+        bob_de = DataSet.new(label: 'Bobs bouw DE', data: [])
+        bob_de << DataSet.new(label: 'Berlin', data: [DataSet.new(label: label_2013, data: 55), DataSet.new(label: label_2014, data: 6)])
+        bob_de << DataSet.new(label: 'Köln', data: [DataSet.new(label: label_2014, data: 7), DataSet.new(label: label_2015, data: 200)])
+
+        subject << bob_nl
+        subject << bob_uk
+        subject << bob_de
       end
 
-      context 'keep_leafs: true' do
-        it 'when filter nils we keep all leafs' do
-          result_set = subject.filter(keep_leafs: true) { nil }
-          expect(result_set).to eq(subject)
-        end
-      end
-    end
-
-    context 'block given' do
-      context 'block that returns true' do
-        it 'returns a copy of the set as filter was called on' do
-          expect(subject.filter { true }).to eq subject
-        end
-      end
-
-      context 'block that returns false' do
-        it 'returns an empty set with the same label as filter was called on' do
-          filter_result = subject.filter { false }
-          expect(filter_result.label).to eq subject.label
-          expect(filter_result.data).to be_nil
-        end
-      end
-
-      context 'block that returns nil' do
-        it 'returns an empty set with the same label as filter was called on' do
-          filter_result = subject.filter { nil }
-          expect(filter_result.label).to eq subject.label
-          expect(filter_result.data).to be_nil
-        end
-      end
-
-      context 'block checks for something more realistic' do
+      context 'leaf_label_id given' do
         let(:expected_ds) { DataSet.new(label: 'Root', data: []) }
 
-        before do
-          bob_nl = DataSet.new(label: 'Bobs bouw NL', data: [])
-          bob_nl.add_item DataSet.new(label: 'Amsterdam', data: [DataSet.new(label: label_2014, data: 1), DataSet.new(label: label_2013, data: 33)])
+        context 'existing leaf_label_id given' do
+          before do
+            bob_nl = DataSet.new(label: 'Bobs bouw NL', data: [])
+            bob_nl.add_item DataSet.new(label: 'Amsterdam', data: [DataSet.new(label: label_2013, data: 33)])
 
-          bob_de = DataSet.new(label: 'Bobs bouw DE', data: [])
-          bob_de.add_item DataSet.new(label: 'Köln', data: [DataSet.new(label: label_2014, data: 7), DataSet.new(label: label_2015, data: 200)])
+            bob_uk = DataSet.new(label: 'Bobs bouw UK', data: [])
+            bob_uk.add_item DataSet.new(label: 'London', data: [DataSet.new(label: label_2013, data: 44)])
 
-          expected_ds.add_item(bob_nl)
-          expected_ds.add_item(bob_de)
+            bob_de = DataSet.new(label: 'Bobs bouw DE', data: [])
+            bob_de.add_item DataSet.new(label: 'Berlin', data: [DataSet.new(label: label_2013, data: 55)])
+
+            expected_ds.add_item(bob_nl)
+            expected_ds.add_item(bob_uk)
+            expected_ds.add_item(bob_de)
+          end
+
+          it 'returns the correct subset as a new dataset' do
+            filter_result = subject.filter(label_2013.id)
+            expect(filter_result == expected_ds).to eq true
+          end
         end
 
-        it 'returns a set with data for Köln and Amsterdam' do
-          needed_cities = %w(Köln Amsterdam)
-          filter_result = subject.filter { |p, s| needed_cities.include?(s.label.name) ? true : nil }
-          expect(filter_result).to eq expected_ds
+        context 'non-existing leaf_label_id given' do
+          it 'returns an empty dataset with the same label as the set .filter was called on' do
+            filter_result = subject.filter('You shall not find... me')
+            expect(filter_result.label).to eq subject.label
+            expect(filter_result.data).to be_nil
+          end
+        end
+      end
+
+      context 'options' do
+        context 'orphan_strategy: :adopt' do
+          it 'adds children of rejected nodes to their parent' do
+            result_set = subject.filter(orphan_strategy: :adopt) do |parent, child|
+              if child.label.id == 'Bobs bouw NL'
+                false
+              elsif child.leaf?
+                true
+              end
+            end
+
+            expect(result_set.children.map(&:label).map(&:id)).to include('Nijmegen')
+            expect(result_set.children.map(&:label).map(&:id)).to include('Amsterdam')
+            expect(result_set.children.map(&:label).map(&:id)).to_not include('Bobs bouw NL')
+          end
+        end
+
+        context 'keep_leafs: true' do
+          it 'when filter nils we keep all leafs' do
+            result_set = subject.filter(keep_leafs: true) { nil }
+            expect(result_set).to eq(subject)
+          end
+        end
+      end
+
+      context 'block given' do
+        context 'block that returns true' do
+          it 'returns a copy of the set as filter was called on' do
+            expect(subject.filter { true }).to eq subject
+          end
+        end
+
+        context 'block that returns false' do
+          it 'returns an empty set with the same label as filter was called on' do
+            filter_result = subject.filter { false }
+            expect(filter_result.label).to eq subject.label
+            expect(filter_result.data).to be_nil
+          end
+        end
+
+        context 'block that returns nil' do
+          it 'returns an empty set with the same label as filter was called on' do
+            filter_result = subject.filter { nil }
+            expect(filter_result.label).to eq subject.label
+            expect(filter_result.data).to be_nil
+          end
+        end
+
+        context 'block checks for something more realistic' do
+          let(:expected_ds) { DataSet.new(label: 'Root', data: []) }
+
+          before do
+            bob_nl = DataSet.new(label: 'Bobs bouw NL', data: [])
+            bob_nl.add_item DataSet.new(label: 'Amsterdam', data: [DataSet.new(label: label_2014, data: 1), DataSet.new(label: label_2013, data: 33)])
+
+            bob_de = DataSet.new(label: 'Bobs bouw DE', data: [])
+            bob_de.add_item DataSet.new(label: 'Köln', data: [DataSet.new(label: label_2014, data: 7), DataSet.new(label: label_2015, data: 200)])
+
+            expected_ds.add_item(bob_nl)
+            expected_ds.add_item(bob_de)
+          end
+
+          it 'returns a set with data for Köln and Amsterdam' do
+            needed_cities = %w(Köln Amsterdam)
+            filter_result = subject.filter { |p, s| needed_cities.include?(s.label.name) ? true : nil }
+            expect(filter_result).to eq expected_ds
+          end
         end
       end
     end
