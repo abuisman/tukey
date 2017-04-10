@@ -127,6 +127,8 @@ class DataSet
   #
   def filter(leaf_label_id = nil, keep_leafs: false, orphan_strategy: :destroy, &block)
     fail ArgumentError, 'No block and no leaf_label_id passed' if !block_given? && leaf_label_id.nil?
+    fail 'Cannot filter value DataSets' unless data_array?
+    return self.dup if self.data.empty?
 
     self.data.each_with_object(DataSet.new(id: id, label: label.deep_dup)) do |set, parent_set|
       if block_given?
