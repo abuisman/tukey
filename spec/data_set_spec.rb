@@ -560,6 +560,14 @@ describe DataSet do
       end
     end
 
+    context 'subject is a value DataSet' do
+      subject { DataSet.new(label: 'Root', data: 1) }
+
+      it 'raises an error' do
+        expect { subject.filter { :foobar } }.to raise_error('Cannot filter value DataSets')
+      end
+    end
+
     context 'non empty data_set given' do
       let(:label_2013) { DataSet::Label.new('2013', id: ['2013-01-01', '2013-12-31'], meta: { started_on: '2013-01-01', ended_on: '2013-12-31' }) }
       let(:label_2014) { DataSet::Label.new('2014', id: ['2014-01-01', '2014-12-31'], meta: { started_on: '2014-01-01', ended_on: '2014-12-31' }) }
