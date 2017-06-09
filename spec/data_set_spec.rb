@@ -612,7 +612,7 @@ describe DataSet do
 
           it 'returns the correct subset as a new dataset' do
             filter_result = subject.filter(label_2013.id)
-            expect(filter_result == expected_ds).to eq true
+            expect(filter_result).to eq expected_ds
           end
         end
 
