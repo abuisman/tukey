@@ -158,8 +158,6 @@ class DataSet
       elsif condition_met.nil? && set.leaf?
         parent_set.add_item(set_dup) if keep_leafs
       end
-
-      parent_set
     end
   end
 
