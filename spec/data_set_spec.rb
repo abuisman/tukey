@@ -612,7 +612,7 @@ describe DataSet do
 
           it 'returns the correct subset as a new dataset' do
             filter_result = subject.filter(label_2013.id)
-            expect(filter_result == expected_ds).to eq true
+            expect(filter_result).to eq expected_ds
           end
         end
 
@@ -620,7 +620,7 @@ describe DataSet do
           it 'returns an empty dataset with the same label as the set .filter was called on' do
             filter_result = subject.filter('You shall not find... me')
             expect(filter_result.label).to eq subject.label
-            expect(filter_result.data).to be_nil
+            expect(filter_result.data).to eq []
           end
         end
       end
@@ -661,7 +661,7 @@ describe DataSet do
           it 'returns an empty set with the same label as filter was called on' do
             filter_result = subject.filter { false }
             expect(filter_result.label).to eq subject.label
-            expect(filter_result.data).to be_nil
+            expect(filter_result.data).to eq []
           end
         end
 
@@ -669,7 +669,7 @@ describe DataSet do
           it 'returns an empty set with the same label as filter was called on' do
             filter_result = subject.filter { nil }
             expect(filter_result.label).to eq subject.label
-            expect(filter_result.data).to be_nil
+            expect(filter_result.data).to eq []
           end
         end
 

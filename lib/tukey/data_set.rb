@@ -130,7 +130,7 @@ class DataSet
     fail 'Cannot filter value DataSets' unless data_array?
     return self.dup if self.data.empty?
 
-    self.data.each_with_object(DataSet.new(id: id, label: label.deep_dup)) do |set, parent_set|
+    self.data.each_with_object(DataSet.new(id: id, label: label.deep_dup, data: [])) do |set, parent_set|
       if block_given?
         condition_met = yield(parent_set, set)
       else
@@ -147,7 +147,7 @@ class DataSet
         deep_filter_result = set_dup.filter(leaf_label_id, keep_leafs: keep_leafs, orphan_strategy: orphan_strategy, &block)
 
         # Here is where either the taking along or adopting of nodes happens
-        if deep_filter_result.data
+        if deep_filter_result.data && !deep_filter_result.data.empty?
           # Filtering underlying children and adding the potential filter result to parent.
           parent_set.add_item(deep_filter_result) if condition_met.nil?
 
@@ -158,8 +158,6 @@ class DataSet
       elsif condition_met.nil? && set.leaf?
         parent_set.add_item(set_dup) if keep_leafs
       end
-
-      parent_set
     end
   end
 
