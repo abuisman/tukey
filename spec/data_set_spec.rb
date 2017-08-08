@@ -873,6 +873,12 @@ describe DataSet do
         ])
       )
     end
+
+    it 'passes the data set as second argument to the block for when this is useful' do
+      expect {
+        subject.transform_values! { |v, set| raise 'Spec failed' unless set.is_a?(DataSet) }
+      }.not_to raise_error
+    end
   end
 
   describe '#transform_values!' do
@@ -885,6 +891,12 @@ describe DataSet do
       expect(subject).to eq(
         DataSet.new(data: [DataSet.new(data: 30), DataSet.new(data: 50), DataSet.new(data: 70)])
       )
+    end
+
+    it 'passes the data set as second argument to the block for when this is useful' do
+      expect {
+        subject.transform_values! { |v, set| raise 'Spec failed' unless set.is_a?(DataSet) }
+      }.not_to raise_error
     end
   end
 

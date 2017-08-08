@@ -261,7 +261,7 @@ class DataSet
   end
 
   def transform_labels!(&block)
-    self.label = yield(label)
+    self.label = yield(label, self)
     data.each { |d| d.transform_labels!(&block) } if data_array?
     self
   end
@@ -270,7 +270,7 @@ class DataSet
     if data_array?
       self.data = data.map { |d| d.transform_values!(&block) }
     else
-      self.data = yield(value)
+      self.data = yield(value, self)
     end
     self
   end
