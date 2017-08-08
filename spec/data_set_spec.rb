@@ -964,9 +964,9 @@ describe DataSet do
 
   describe '#find' do
     context 'block given' do
-      subject { data_set_root.find { |d| d.label.name == 'Junk food' } }
-
-      it { is_expected.to eq data_set_leaf_junk_food }
+      it 'recusrively searches for data set matching block' do
+        expect(data_set_root.find { |d| d.label.name == 'Junk food' }).to eq data_set_leaf_junk_food
+      end
     end
 
     context 'subtree_id directly passed' do

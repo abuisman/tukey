@@ -162,7 +162,7 @@ class DataSet
   end
 
   def find(subtree_id = nil, &block)
-    return super if block_given?
+    return super if block_given? # It recursively searches descendants for data set matching block
     return self if id == subtree_id
     return nil unless data_array?
     data.each do |child|
