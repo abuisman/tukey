@@ -873,6 +873,12 @@ describe DataSet do
         ])
       )
     end
+
+    it 'passes the data set as second argument to the block for when this is useful' do
+      expect {
+        subject.transform_values! { |v, set| raise 'Spec failed' unless set.is_a?(DataSet) }
+      }.not_to raise_error
+    end
   end
 
   describe '#transform_values!' do
@@ -885,6 +891,12 @@ describe DataSet do
       expect(subject).to eq(
         DataSet.new(data: [DataSet.new(data: 30), DataSet.new(data: 50), DataSet.new(data: 70)])
       )
+    end
+
+    it 'passes the data set as second argument to the block for when this is useful' do
+      expect {
+        subject.transform_values! { |v, set| raise 'Spec failed' unless set.is_a?(DataSet) }
+      }.not_to raise_error
     end
   end
 
@@ -964,9 +976,9 @@ describe DataSet do
 
   describe '#find' do
     context 'block given' do
-      subject { data_set_root.find { |d| d.label.name == 'Junk food' } }
-
-      it { is_expected.to eq data_set_leaf_junk_food }
+      it 'recusrively searches for data set matching block' do
+        expect(data_set_root.find { |d| d.label.name == 'Junk food' }).to eq data_set_leaf_junk_food
+      end
     end
 
     context 'subtree_id directly passed' do
