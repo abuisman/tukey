@@ -131,13 +131,13 @@ describe DataSet do
         expect(set1 <=> set2).to eq 0
       end
 
-      it 'returns 1 if set1 has data but the other does' do
+      it 'returns 1 if set1 has data but the other does not' do
         set1 = DataSet.new(label: 'Ditto', data: 1)
         set2 = DataSet.new(label: 'Ditto', data: nil)
         expect(set1 <=> set2).to eq 1
       end
 
-      it 'returns -1 when set1 has no data but set2 does' do
+      it 'returns -1 if set1 has no data but set2 does' do
         set1 = DataSet.new(label: 'Ditto', data: nil)
         set2 = DataSet.new(label: 'Ditto', data: 1)
         expect(set1 <=> set2).to eq(-1)
@@ -194,21 +194,39 @@ describe DataSet do
         let(:label2) { DataSet::Label.new(id: { do_it: 'just do it' }, name: 'Say it') }
         let(:data1) { [DataSet.new(label: 'I am different')] }
         let(:data2) { [DataSet.new(label: 'Different am I')] }
-        let(:set1) { DataSet.new(label: label1, data: "Alpha") }
-        let(:set2) { DataSet.new(label: label2, data: "Omega") }
+        let(:set1) { DataSet.new(label: label1, data: [1,2,3]) }
+        let(:set2) { DataSet.new(label: label2, data: [3,2,1]) }
 
-        it 'returns 1 when the `.size` of set1\'s data is bigger than that of set2\s data' do
-          set1.data = "Alphanumeric"
+        it 'returns 1 when the size of set1\'s data is bigger than that of set2\'s data' do
+          set1.data = [1,2,3,4,5]
           expect(set1 <=> set2).to eq 1
         end
 
-        it 'returns -1 when the `.size` of set1\'s data is smaller than that of set2\s data' do
-          set1.data = "Tiny"
+        it 'returns -1 when the size of set1\'s data is smaller than that of set2\'s data' do
+          set1.data = [1,2]
           expect(set1 <=> set2).to eq -1
         end
 
-        it 'returns 0 when the `.size` of data is the same' do
+        it 'returns 0 when the size of data is the same' do
           expect(set1 <=> set2).to eq 0
+        end
+      end
+
+      context 'when the first data set is an array and the second is not' do
+        let(:set1) { DataSet.new(data: [1,2,3]) }
+        let(:set2) { DataSet.new(data: 1) }
+
+        it 'returns 1' do
+          expect(set1 <=> set2).to eq 1
+        end
+      end
+
+      context 'when the second data set is an array and the first is not' do
+        let(:set1) { DataSet.new(data: 4) }
+        let(:set2) { DataSet.new(data: [4,5,6]) }
+
+        it 'returns -1' do
+          expect(set1 <=> set2).to eq -1
         end
       end
     end
