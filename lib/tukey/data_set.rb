@@ -198,9 +198,11 @@ class DataSet
     return 0 if data == other.data && label == other.label
     return 1 if data && other.data.nil?
     return -1 if data.nil? && other.data
+    return 1 if data_array? && !other.data_array?
+    return -1 if !data_array? && other.data_array?
     return label.id <=> other.label.id if label && other.label && label.id <=> other.label.id
-    return data <=> other.data if data.is_a?(Numeric) && other.data.is_a?(Numeric)
-    data.size <=> other.data.size
+    return data.size <=> other.data.size if data_array? && other.data_array?
+    data <=> other.data
   end
 
   # == is used for comparison of two instances directly
