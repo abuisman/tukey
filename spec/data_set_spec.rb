@@ -570,15 +570,7 @@ describe DataSet do
   describe '#filter' do
     subject { DataSet.new(label: 'Root', data: []) }
 
-    context 'empty data_set given' do
-      let(:expected_ds) { DataSet.new(label: 'Root', data: []) }
-
-      it 'returns a duplicate of the unmodified data_set' do
-        expect(subject.filter { :foobar }).to eq(expected_ds)
-      end
-    end
-
-    context 'subject is a value DataSet' do
+    context 'on value DataSet' do
       subject { DataSet.new(label: 'Root', data: 1) }
 
       it 'raises an error' do
@@ -586,7 +578,15 @@ describe DataSet do
       end
     end
 
-    context 'non empty data_set given' do
+    context 'on empty data_set' do
+      let(:expected_ds) { DataSet.new(label: 'Root', data: []) }
+
+      it 'returns a duplicate of the unmodified data_set' do
+        expect(subject.filter { :foobar }).to eq(expected_ds)
+      end
+    end
+
+    context 'on non empty data_set' do
       let(:label_2013) { DataSet::Label.new('2013', id: ['2013-01-01', '2013-12-31'], meta: { started_on: '2013-01-01', ended_on: '2013-12-31' }) }
       let(:label_2014) { DataSet::Label.new('2014', id: ['2014-01-01', '2014-12-31'], meta: { started_on: '2014-01-01', ended_on: '2014-12-31' }) }
       let(:label_2015) { DataSet::Label.new('2015', id: ['2015-01-01', '2015-12-31'], meta: { started_on: '2015-01-01', ended_on: '2015-12-31' }) }
@@ -607,6 +607,12 @@ describe DataSet do
         subject << bob_nl
         subject << bob_uk
         subject << bob_de
+      end
+
+      it 'keeps the parent reference' do
+        parent = double
+        subject.parent = parent
+        expect(subject.filter { :foobar }.parent).to eq(parent)
       end
 
       context 'leaf_label_id given' do
