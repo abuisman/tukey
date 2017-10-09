@@ -130,7 +130,7 @@ class DataSet
     fail 'Cannot filter value DataSets' unless data_array?
     return self.dup if self.data.empty?
 
-    self.data.each_with_object(DataSet.new(id: id, label: label.deep_dup, data: [])) do |set, parent_set|
+    self.data.each_with_object(DataSet.new(label: label.deep_dup, data: [], parent: parent, id: id)) do |set, parent_set|
       if block_given?
         condition_met = yield(parent_set, set)
       else
