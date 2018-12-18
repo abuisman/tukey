@@ -798,6 +798,7 @@ describe DataSet do
           data: [
             DataSet.new(data: 234),
             DataSet.new(data: 46),
+            DataSet.new(data: [DataSet.new(data: 56), DataSet.new(data: 1), DataSet.new]),
           ],
         ).sum
       end
@@ -805,18 +806,30 @@ describe DataSet do
       it { is_expected.to eq 280 }
     end
 
-    context 'when the subject is a branch' do
+    context 'when the subject is a branch without direct leafs' do
       subject do
         DataSet.new(
           data: [
-            DataSet.new(data: 234),
-            DataSet.new(data: 46),
             DataSet.new(data: [DataSet.new(data: 56), DataSet.new(data: 1), DataSet.new]),
           ],
         ).sum
       end
 
-      it { is_expected.to eq 337 }
+      it { is_expected.to eq 57 }
+    end
+
+    context 'when the subject only has nil leafs' do
+      subject do
+        DataSet.new(
+          data: [
+            DataSet.new(data: nil),
+            DataSet.new(data: nil),
+            DataSet.new(data: nil),
+          ],
+        ).sum
+      end
+
+      it { is_expected.to eq nil }
     end
   end
 
