@@ -46,6 +46,10 @@ class DataSet
     []
   end
 
+  def leafs
+    children.select(&:leaf?)
+  end
+
   def siblings
     return [] if parent.nil?
     parent.children.reject { |c| c == self }

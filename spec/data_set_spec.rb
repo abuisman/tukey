@@ -5,6 +5,7 @@ describe DataSet do
   let(:data_set_leaf_super_foods) { DataSet.new(label: 'Super foods', data: 123.4) }
   let(:data_set_leaf_junk_food) { DataSet.new(label: 'Junk food', data: 123.4) }
   let(:data_set_branch_food) { DataSet.new(label: 'Food', data: [data_set_leaf_junk_food]) }
+  let(:data_set_branch_and_leaf_food) { DataSet.new(label: 'Food with leafs', data: [data_set_branch_food, data_set_leaf_super_foods]) }
   let!(:data_set_root) { DataSet.new(label: 'Expenses per year', data: [data_set_branch_food]) }
 
   %w(label data parent).each do |att|
@@ -295,6 +296,13 @@ describe DataSet do
       it 'returns an 1 size array' do
         expect(data_set_root.children.size).to eq 1
       end
+    end
+  end
+
+  describe '#leafs' do
+    it 'returns only leaf children' do
+      expect(data_set_branch_and_leaf_food.leafs).to include(data_set_leaf_super_foods)
+      expect(data_set_branch_and_leaf_food.leafs).not_to include(data_set_branch_food)
     end
   end
 
