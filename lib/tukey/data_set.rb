@@ -73,7 +73,7 @@ class DataSet
   end
 
   def oneling?
-    siblings.none?
+    leaf? ? siblings.none? : siblings.reject(&:leaf?).none?
   end
 
   def root?
