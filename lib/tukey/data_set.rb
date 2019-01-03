@@ -46,6 +46,10 @@ class DataSet
     []
   end
 
+  def leafs
+    children.select(&:leaf?)
+  end
+
   def siblings
     return [] if parent.nil?
     parent.children.reject { |c| c == self }
@@ -69,7 +73,7 @@ class DataSet
   end
 
   def oneling?
-    siblings.none?
+    leaf? ? siblings.none? : siblings.reject(&:leaf?).none?
   end
 
   def root?
@@ -245,7 +249,10 @@ class DataSet
   end
 
   def sum
-    values = [reducable_values].flatten.compact
+    # Leafs are considered a sum of their underlying data_sets,
+    # therefore we can just sum the leafs if present.
+    return value if leaf?
+    values = (leafs.any? ? leafs.map(&:value) : children.map(&:sum)).compact
     return nil if values.empty?
     values.inject(&:+)
   end

@@ -5,6 +5,7 @@ describe DataSet do
   let(:data_set_leaf_super_foods) { DataSet.new(label: 'Super foods', data: 123.4) }
   let(:data_set_leaf_junk_food) { DataSet.new(label: 'Junk food', data: 123.4) }
   let(:data_set_branch_food) { DataSet.new(label: 'Food', data: [data_set_leaf_junk_food]) }
+  let(:data_set_branch_and_leaf_food) { DataSet.new(label: 'Food with leafs', data: [data_set_branch_food, data_set_leaf_super_foods]) }
   let!(:data_set_root) { DataSet.new(label: 'Expenses per year', data: [data_set_branch_food]) }
 
   %w(label data parent).each do |att|
@@ -298,6 +299,13 @@ describe DataSet do
     end
   end
 
+  describe '#leafs' do
+    it 'returns only leaf children' do
+      expect(data_set_branch_and_leaf_food.leafs).to include(data_set_leaf_super_foods)
+      expect(data_set_branch_and_leaf_food.leafs).not_to include(data_set_branch_food)
+    end
+  end
+
   describe '#siblings' do
     before do
       data_set_branch_food.add_item(data_set_leaf_super_foods)
@@ -442,6 +450,52 @@ describe DataSet do
   end
 
   describe '#oneling?' do
+    context 'when subject is a leaf'  do
+      subject { DataSet.new(data: 100) }
+      let!(:root_data_set) { DataSet.new(data: [subject]) }
+
+      context 'when subject has siblings' do
+        before { root_data_set.add_item(DataSet.new(data: 200)) }
+
+        it 'returns false' do
+          expect(subject.oneling?).to eq false
+        end
+      end
+
+      context 'when subject has no siblings' do
+        it 'returns true' do
+          expect(subject.oneling?).to eq true
+        end
+      end
+    end
+
+    context 'when subject is not a leaf'  do
+      subject { DataSet.new(data: [DataSet.new(data: 100)]) }
+      let!(:root_data_set) { DataSet.new(data: [subject]) }
+
+      context 'when subject has siblings' do
+        before { root_data_set.add_item(DataSet.new(data: [DataSet.new(data: 200)])) }
+
+        it 'returns false' do
+          expect(subject.oneling?).to eq false
+        end
+      end
+
+      context 'when subject has no siblings' do
+        it 'returns true' do
+          expect(subject.oneling?).to eq true
+        end
+      end
+
+      context 'when subject has only leaf siblings' do
+        before { root_data_set.add_item(DataSet.new(data: 200)) }
+
+        it 'returns true' do
+          expect(subject.oneling?).to eq true
+        end
+      end
+    end
+
     before do
       data_set_branch_food.add_item(data_set_leaf_super_foods)
     end
@@ -790,6 +844,7 @@ describe DataSet do
           data: [
             DataSet.new(data: 234),
             DataSet.new(data: 46),
+            DataSet.new(data: [DataSet.new(data: 56), DataSet.new(data: 1), DataSet.new]),
           ],
         ).sum
       end
@@ -797,18 +852,30 @@ describe DataSet do
       it { is_expected.to eq 280 }
     end
 
-    context 'when the subject is a branch' do
+    context 'when the subject is a branch without direct leafs' do
       subject do
         DataSet.new(
           data: [
-            DataSet.new(data: 234),
-            DataSet.new(data: 46),
             DataSet.new(data: [DataSet.new(data: 56), DataSet.new(data: 1), DataSet.new]),
           ],
         ).sum
       end
 
-      it { is_expected.to eq 337 }
+      it { is_expected.to eq 57 }
+    end
+
+    context 'when the subject only has nil leafs' do
+      subject do
+        DataSet.new(
+          data: [
+            DataSet.new(data: nil),
+            DataSet.new(data: nil),
+            DataSet.new(data: nil),
+          ],
+        ).sum
+      end
+
+      it { is_expected.to eq nil }
     end
   end
 
