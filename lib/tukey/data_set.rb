@@ -46,6 +46,10 @@ class DataSet
     []
   end
 
+  def leafs
+    children.select(&:leaf?)
+  end
+
   def siblings
     return [] if parent.nil?
     parent.children.reject { |c| c == self }
@@ -69,7 +73,7 @@ class DataSet
   end
 
   def oneling?
-    siblings.none?
+    leaf? ? siblings.none? : siblings.reject(&:leaf?).none?
   end
 
   def root?
@@ -127,8 +131,10 @@ class DataSet
   #
   def filter(leaf_label_id = nil, keep_leafs: false, orphan_strategy: :destroy, &block)
     fail ArgumentError, 'No block and no leaf_label_id passed' if !block_given? && leaf_label_id.nil?
+    fail 'Cannot filter value DataSets' unless data_array?
+    return self.dup if self.data.empty?
 
-    self.data.each_with_object(DataSet.new(id: id, label: label.deep_dup)) do |set, parent_set|
+    self.data.each_with_object(DataSet.new(label: label.deep_dup, data: [], parent: parent, id: id)) do |set, parent_set|
       if block_given?
         condition_met = yield(parent_set, set)
       else
@@ -145,7 +151,7 @@ class DataSet
         deep_filter_result = set_dup.filter(leaf_label_id, keep_leafs: keep_leafs, orphan_strategy: orphan_strategy, &block)
 
         # Here is where either the taking along or adopting of nodes happens
-        if deep_filter_result.data
+        if deep_filter_result.data && !deep_filter_result.data.empty?
           # Filtering underlying children and adding the potential filter result to parent.
           parent_set.add_item(deep_filter_result) if condition_met.nil?
 
@@ -156,13 +162,11 @@ class DataSet
       elsif condition_met.nil? && set.leaf?
         parent_set.add_item(set_dup) if keep_leafs
       end
-
-      parent_set
     end
   end
 
   def find(subtree_id = nil, &block)
-    return super if block_given?
+    return super if block_given? # It recursively searches descendants for data set matching block
     return self if id == subtree_id
     return nil unless data_array?
     data.each do |child|
@@ -198,9 +202,11 @@ class DataSet
     return 0 if data == other.data && label == other.label
     return 1 if data && other.data.nil?
     return -1 if data.nil? && other.data
-    return label.id <=> other.label.id if label.id <=> other.label.id
-    return data <=> other.data if data.is_a?(Numeric) && other.data.is_a?(Numeric)
-    data.size <=> other.data.size
+    return 1 if data_array? && !other.data_array?
+    return -1 if !data_array? && other.data_array?
+    return label.id <=> other.label.id if label && other.label && label.id <=> other.label.id
+    return data.size <=> other.data.size if data_array? && other.data_array?
+    data <=> other.data
   end
 
   # == is used for comparison of two instances directly
@@ -243,7 +249,10 @@ class DataSet
   end
 
   def sum
-    values = [reducable_values].flatten.compact
+    # Leafs are considered a sum of their underlying data_sets,
+    # therefore we can just sum the leafs if present.
+    return value if leaf?
+    values = (leafs.any? ? leafs.map(&:value) : children.map(&:sum)).compact
     return nil if values.empty?
     values.inject(&:+)
   end
@@ -260,16 +269,46 @@ class DataSet
     set.data
   end
 
-  def combine(other_data_set, operator)
-    combined_data_set = dup
-    if data_array? && other_data_set.data_array?
-      combined_data_set.data = combine_data_array(other_data_set.children, operator)
-    elsif !data_array? && !other_data_set.data_array?
-      combined_data_set.data = combine_data_value(other_data_set.value, operator)
+  def transform_labels!(&block)
+    self.label = yield(label, self)
+    data.each { |d| d.transform_labels!(&block) } if data_array?
+    self
+  end
+
+  def transform_values!(&block)
+    if data_array?
+      self.data = data.map { |d| d.transform_values!(&block) }
     else
-      fail ArgumentError, "Can't combine array DataSet with value DataSet"
+      self.data = yield(value, self)
     end
-    combined_data_set
+    self
+  end
+
+  def merge(other_data_set, &block)
+    merged_data_set = dup
+    if data_array? && other_data_set.data_array? # Merge sets
+      other_children = other_data_set.children.dup
+      merged_children = children.map do |child|
+        other_child = other_children.find { |ods| ods.label == child.label }
+        if other_child
+          other_children.delete(other_child)
+          child.merge(other_child, &block)
+        else
+          child
+        end
+      end
+      merged_children += other_children # The remaining other children (without matching child in this data set)
+      merged_data_set.data = merged_children
+    elsif !data_array? && !other_data_set.data_array? # Merge values
+      if block_given? # Combine data using block
+        merged_data_set.data = yield(label, value, other_data_set.value)
+      else # Simply overwrite data with other data
+        merged_data_set.data = other_data_set.value
+      end
+    else
+      fail ArgumentError, "Can't merge array DataSet with value DataSet"
+    end
+    merged_data_set
   end
 
   def data_array?
@@ -309,41 +348,6 @@ class DataSet
 
   def dup_value(value)
     value.is_a?(Numeric) ? value : value.dup
-  end
-
-  def combine_data_array(other_children, operator)
-    other_children = other_children.dup
-    result = children.map do |child|
-      other_child = other_children.find { |ods| ods.label == child.label }
-      if other_child
-        other_children.delete(other_child)
-        child.combine(other_child, operator)
-      else
-        child
-      end
-    end
-    result += other_children # The remaining other children (without matching child in this data set)
-    result
-  end
-
-  def combine_data_value(other_value, operator)
-    own_value = value
-
-    # Always return nil if both values are nil (prevents summed data sets of being wrongly considered unempty and thus not hidden)
-    return nil if own_value.nil? && other_value.nil?
-
-    case operator.to_sym
-    when :+, :-
-      # When adding or subtracting treat nil (unknown) values as zero, instead of returning nil as summation result
-      own_value ||= 0.0
-      other_value ||= 0.0
-    when :/
-      # Prevent division by zero resulting in NaN/Infinity values
-      other_value = nil if other_value&.zero?
-    end
-
-    return nil if own_value.nil? || other_value.nil?
-    own_value.send(operator, other_value)
   end
 end
 

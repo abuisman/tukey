@@ -5,6 +5,7 @@ describe DataSet do
   let(:data_set_leaf_super_foods) { DataSet.new(label: 'Super foods', data: 123.4) }
   let(:data_set_leaf_junk_food) { DataSet.new(label: 'Junk food', data: 123.4) }
   let(:data_set_branch_food) { DataSet.new(label: 'Food', data: [data_set_leaf_junk_food]) }
+  let(:data_set_branch_and_leaf_food) { DataSet.new(label: 'Food with leafs', data: [data_set_branch_food, data_set_leaf_super_foods]) }
   let!(:data_set_root) { DataSet.new(label: 'Expenses per year', data: [data_set_branch_food]) }
 
   %w(label data parent).each do |att|
@@ -131,13 +132,13 @@ describe DataSet do
         expect(set1 <=> set2).to eq 0
       end
 
-      it 'returns 1 if set1 has data but the other does' do
+      it 'returns 1 if set1 has data but the other does not' do
         set1 = DataSet.new(label: 'Ditto', data: 1)
         set2 = DataSet.new(label: 'Ditto', data: nil)
         expect(set1 <=> set2).to eq 1
       end
 
-      it 'returns -1 when set1 has no data but set2 does' do
+      it 'returns -1 if set1 has no data but set2 does' do
         set1 = DataSet.new(label: 'Ditto', data: nil)
         set2 = DataSet.new(label: 'Ditto', data: 1)
         expect(set1 <=> set2).to eq(-1)
@@ -194,21 +195,39 @@ describe DataSet do
         let(:label2) { DataSet::Label.new(id: { do_it: 'just do it' }, name: 'Say it') }
         let(:data1) { [DataSet.new(label: 'I am different')] }
         let(:data2) { [DataSet.new(label: 'Different am I')] }
-        let(:set1) { DataSet.new(label: label1, data: "Alpha") }
-        let(:set2) { DataSet.new(label: label2, data: "Omega") }
+        let(:set1) { DataSet.new(label: label1, data: [1,2,3]) }
+        let(:set2) { DataSet.new(label: label2, data: [3,2,1]) }
 
-        it 'returns 1 when the `.size` of set1\'s data is bigger than that of set2\s data' do
-          set1.data = "Alphanumeric"
+        it 'returns 1 when the size of set1\'s data is bigger than that of set2\'s data' do
+          set1.data = [1,2,3,4,5]
           expect(set1 <=> set2).to eq 1
         end
 
-        it 'returns -1 when the `.size` of set1\'s data is smaller than that of set2\s data' do
-          set1.data = "Tiny"
+        it 'returns -1 when the size of set1\'s data is smaller than that of set2\'s data' do
+          set1.data = [1,2]
           expect(set1 <=> set2).to eq -1
         end
 
-        it 'returns 0 when the `.size` of data is the same' do
+        it 'returns 0 when the size of data is the same' do
           expect(set1 <=> set2).to eq 0
+        end
+      end
+
+      context 'when the first data set is an array and the second is not' do
+        let(:set1) { DataSet.new(data: [1,2,3]) }
+        let(:set2) { DataSet.new(data: 1) }
+
+        it 'returns 1' do
+          expect(set1 <=> set2).to eq 1
+        end
+      end
+
+      context 'when the second data set is an array and the first is not' do
+        let(:set1) { DataSet.new(data: 4) }
+        let(:set2) { DataSet.new(data: [4,5,6]) }
+
+        it 'returns -1' do
+          expect(set1 <=> set2).to eq -1
         end
       end
     end
@@ -277,6 +296,13 @@ describe DataSet do
       it 'returns an 1 size array' do
         expect(data_set_root.children.size).to eq 1
       end
+    end
+  end
+
+  describe '#leafs' do
+    it 'returns only leaf children' do
+      expect(data_set_branch_and_leaf_food.leafs).to include(data_set_leaf_super_foods)
+      expect(data_set_branch_and_leaf_food.leafs).not_to include(data_set_branch_food)
     end
   end
 
@@ -424,6 +450,52 @@ describe DataSet do
   end
 
   describe '#oneling?' do
+    context 'when subject is a leaf'  do
+      subject { DataSet.new(data: 100) }
+      let!(:root_data_set) { DataSet.new(data: [subject]) }
+
+      context 'when subject has siblings' do
+        before { root_data_set.add_item(DataSet.new(data: 200)) }
+
+        it 'returns false' do
+          expect(subject.oneling?).to eq false
+        end
+      end
+
+      context 'when subject has no siblings' do
+        it 'returns true' do
+          expect(subject.oneling?).to eq true
+        end
+      end
+    end
+
+    context 'when subject is not a leaf'  do
+      subject { DataSet.new(data: [DataSet.new(data: 100)]) }
+      let!(:root_data_set) { DataSet.new(data: [subject]) }
+
+      context 'when subject has siblings' do
+        before { root_data_set.add_item(DataSet.new(data: [DataSet.new(data: 200)])) }
+
+        it 'returns false' do
+          expect(subject.oneling?).to eq false
+        end
+      end
+
+      context 'when subject has no siblings' do
+        it 'returns true' do
+          expect(subject.oneling?).to eq true
+        end
+      end
+
+      context 'when subject has only leaf siblings' do
+        before { root_data_set.add_item(DataSet.new(data: 200)) }
+
+        it 'returns true' do
+          expect(subject.oneling?).to eq true
+        end
+      end
+    end
+
     before do
       data_set_branch_food.add_item(data_set_leaf_super_foods)
     end
@@ -550,129 +622,154 @@ describe DataSet do
   # rubocop:enable Style/SingleLineBlockParams
 
   describe '#filter' do
-    let(:label_2013) { DataSet::Label.new('2013', id: ['2013-01-01', '2013-12-31'], meta: { started_on: '2013-01-01', ended_on: '2013-12-31' }) }
-    let(:label_2014) { DataSet::Label.new('2014', id: ['2014-01-01', '2014-12-31'], meta: { started_on: '2014-01-01', ended_on: '2014-12-31' }) }
-    let(:label_2015) { DataSet::Label.new('2015', id: ['2015-01-01', '2015-12-31'], meta: { started_on: '2015-01-01', ended_on: '2015-12-31' }) }
     subject { DataSet.new(label: 'Root', data: []) }
 
-    before do
-      bob_nl = DataSet.new(label: 'Bobs bouw NL', data: [])
-      bob_nl << DataSet.new(label: 'Amsterdam', data: [DataSet.new(label: label_2014, data: 1), DataSet.new(label: label_2013, data: 33)])
-      bob_nl << DataSet.new(label: 'Nijmegen', data: [DataSet.new(label: label_2015, data: 100), DataSet.new(label: label_2014, data: 2)])
+    context 'on value DataSet' do
+      subject { DataSet.new(label: 'Root', data: 1) }
 
-      bob_uk = DataSet.new(label: 'Bobs bouw UK', data: [])
-      bob_uk << DataSet.new(label: 'London', data: [DataSet.new(label: label_2014, data: 3), DataSet.new(label: label_2013, data: 44)])
-      bob_uk << DataSet.new(label: 'Reading', data: [DataSet.new(label: label_2014, data: 4), DataSet.new(label: label_2014, data: 5)])
-
-      bob_de = DataSet.new(label: 'Bobs bouw DE', data: [])
-      bob_de << DataSet.new(label: 'Berlin', data: [DataSet.new(label: label_2013, data: 55), DataSet.new(label: label_2014, data: 6)])
-      bob_de << DataSet.new(label: 'Köln', data: [DataSet.new(label: label_2014, data: 7), DataSet.new(label: label_2015, data: 200)])
-
-      subject << bob_nl
-      subject << bob_uk
-      subject << bob_de
+      it 'raises an error' do
+        expect { subject.filter { :foobar } }.to raise_error('Cannot filter value DataSets')
+      end
     end
 
-    context 'leaf_label_id given' do
+    context 'on empty data_set' do
       let(:expected_ds) { DataSet.new(label: 'Root', data: []) }
 
-      context 'existing leaf_label_id given' do
-        before do
-          bob_nl = DataSet.new(label: 'Bobs bouw NL', data: [])
-          bob_nl.add_item DataSet.new(label: 'Amsterdam', data: [DataSet.new(label: label_2013, data: 33)])
-
-          bob_uk = DataSet.new(label: 'Bobs bouw UK', data: [])
-          bob_uk.add_item DataSet.new(label: 'London', data: [DataSet.new(label: label_2013, data: 44)])
-
-          bob_de = DataSet.new(label: 'Bobs bouw DE', data: [])
-          bob_de.add_item DataSet.new(label: 'Berlin', data: [DataSet.new(label: label_2013, data: 55)])
-
-          expected_ds.add_item(bob_nl)
-          expected_ds.add_item(bob_uk)
-          expected_ds.add_item(bob_de)
-        end
-
-        it 'returns the correct subset as a new dataset' do
-          filter_result = subject.filter(label_2013.id)
-          expect(filter_result == expected_ds).to eq true
-        end
-      end
-
-      context 'non-existing leaf_label_id given' do
-        it 'returns an empty dataset with the same label as the set .filter was called on' do
-          filter_result = subject.filter('You shall not find... me')
-          expect(filter_result.label).to eq subject.label
-          expect(filter_result.data).to be_nil
-        end
+      it 'returns a duplicate of the unmodified data_set' do
+        expect(subject.filter { :foobar }).to eq(expected_ds)
       end
     end
 
-    context 'options' do
-      context 'orphan_strategy: :adopt' do
-        it 'adds children of rejected nodes to their parent' do
-          result_set = subject.filter(orphan_strategy: :adopt) do |parent, child|
-            if child.label.id == 'Bobs bouw NL'
-              false
-            elsif child.leaf?
-              true
-            end
-          end
+    context 'on non empty data_set' do
+      let(:label_2013) { DataSet::Label.new('2013', id: ['2013-01-01', '2013-12-31'], meta: { started_on: '2013-01-01', ended_on: '2013-12-31' }) }
+      let(:label_2014) { DataSet::Label.new('2014', id: ['2014-01-01', '2014-12-31'], meta: { started_on: '2014-01-01', ended_on: '2014-12-31' }) }
+      let(:label_2015) { DataSet::Label.new('2015', id: ['2015-01-01', '2015-12-31'], meta: { started_on: '2015-01-01', ended_on: '2015-12-31' }) }
 
-          expect(result_set.children.map(&:label).map(&:id)).to include('Nijmegen')
-          expect(result_set.children.map(&:label).map(&:id)).to include('Amsterdam')
-          expect(result_set.children.map(&:label).map(&:id)).to_not include('Bobs bouw NL')
-        end
+      before do
+        bob_nl = DataSet.new(label: 'Bobs bouw NL', data: [])
+        bob_nl << DataSet.new(label: 'Amsterdam', data: [DataSet.new(label: label_2014, data: 1), DataSet.new(label: label_2013, data: 33)])
+        bob_nl << DataSet.new(label: 'Nijmegen', data: [DataSet.new(label: label_2015, data: 100), DataSet.new(label: label_2014, data: 2)])
+
+        bob_uk = DataSet.new(label: 'Bobs bouw UK', data: [])
+        bob_uk << DataSet.new(label: 'London', data: [DataSet.new(label: label_2014, data: 3), DataSet.new(label: label_2013, data: 44)])
+        bob_uk << DataSet.new(label: 'Reading', data: [DataSet.new(label: label_2014, data: 4), DataSet.new(label: label_2014, data: 5)])
+
+        bob_de = DataSet.new(label: 'Bobs bouw DE', data: [])
+        bob_de << DataSet.new(label: 'Berlin', data: [DataSet.new(label: label_2013, data: 55), DataSet.new(label: label_2014, data: 6)])
+        bob_de << DataSet.new(label: 'Köln', data: [DataSet.new(label: label_2014, data: 7), DataSet.new(label: label_2015, data: 200)])
+
+        subject << bob_nl
+        subject << bob_uk
+        subject << bob_de
       end
 
-      context 'keep_leafs: true' do
-        it 'when filter nils we keep all leafs' do
-          result_set = subject.filter(keep_leafs: true) { nil }
-          expect(result_set).to eq(subject)
-        end
-      end
-    end
-
-    context 'block given' do
-      context 'block that returns true' do
-        it 'returns a copy of the set as filter was called on' do
-          expect(subject.filter { true }).to eq subject
-        end
+      it 'keeps the parent reference' do
+        parent = double
+        subject.parent = parent
+        expect(subject.filter { :foobar }.parent).to eq(parent)
       end
 
-      context 'block that returns false' do
-        it 'returns an empty set with the same label as filter was called on' do
-          filter_result = subject.filter { false }
-          expect(filter_result.label).to eq subject.label
-          expect(filter_result.data).to be_nil
-        end
-      end
-
-      context 'block that returns nil' do
-        it 'returns an empty set with the same label as filter was called on' do
-          filter_result = subject.filter { nil }
-          expect(filter_result.label).to eq subject.label
-          expect(filter_result.data).to be_nil
-        end
-      end
-
-      context 'block checks for something more realistic' do
+      context 'leaf_label_id given' do
         let(:expected_ds) { DataSet.new(label: 'Root', data: []) }
 
-        before do
-          bob_nl = DataSet.new(label: 'Bobs bouw NL', data: [])
-          bob_nl.add_item DataSet.new(label: 'Amsterdam', data: [DataSet.new(label: label_2014, data: 1), DataSet.new(label: label_2013, data: 33)])
+        context 'existing leaf_label_id given' do
+          before do
+            bob_nl = DataSet.new(label: 'Bobs bouw NL', data: [])
+            bob_nl.add_item DataSet.new(label: 'Amsterdam', data: [DataSet.new(label: label_2013, data: 33)])
 
-          bob_de = DataSet.new(label: 'Bobs bouw DE', data: [])
-          bob_de.add_item DataSet.new(label: 'Köln', data: [DataSet.new(label: label_2014, data: 7), DataSet.new(label: label_2015, data: 200)])
+            bob_uk = DataSet.new(label: 'Bobs bouw UK', data: [])
+            bob_uk.add_item DataSet.new(label: 'London', data: [DataSet.new(label: label_2013, data: 44)])
 
-          expected_ds.add_item(bob_nl)
-          expected_ds.add_item(bob_de)
+            bob_de = DataSet.new(label: 'Bobs bouw DE', data: [])
+            bob_de.add_item DataSet.new(label: 'Berlin', data: [DataSet.new(label: label_2013, data: 55)])
+
+            expected_ds.add_item(bob_nl)
+            expected_ds.add_item(bob_uk)
+            expected_ds.add_item(bob_de)
+          end
+
+          it 'returns the correct subset as a new dataset' do
+            filter_result = subject.filter(label_2013.id)
+            expect(filter_result).to eq expected_ds
+          end
         end
 
-        it 'returns a set with data for Köln and Amsterdam' do
-          needed_cities = %w(Köln Amsterdam)
-          filter_result = subject.filter { |p, s| needed_cities.include?(s.label.name) ? true : nil }
-          expect(filter_result).to eq expected_ds
+        context 'non-existing leaf_label_id given' do
+          it 'returns an empty dataset with the same label as the set .filter was called on' do
+            filter_result = subject.filter('You shall not find... me')
+            expect(filter_result.label).to eq subject.label
+            expect(filter_result.data).to eq []
+          end
+        end
+      end
+
+      context 'options' do
+        context 'orphan_strategy: :adopt' do
+          it 'adds children of rejected nodes to their parent' do
+            result_set = subject.filter(orphan_strategy: :adopt) do |parent, child|
+              if child.label.id == 'Bobs bouw NL'
+                false
+              elsif child.leaf?
+                true
+              end
+            end
+
+            expect(result_set.children.map(&:label).map(&:id)).to include('Nijmegen')
+            expect(result_set.children.map(&:label).map(&:id)).to include('Amsterdam')
+            expect(result_set.children.map(&:label).map(&:id)).to_not include('Bobs bouw NL')
+          end
+        end
+
+        context 'keep_leafs: true' do
+          it 'when filter nils we keep all leafs' do
+            result_set = subject.filter(keep_leafs: true) { nil }
+            expect(result_set).to eq(subject)
+          end
+        end
+      end
+
+      context 'block given' do
+        context 'block that returns true' do
+          it 'returns a copy of the set as filter was called on' do
+            expect(subject.filter { true }).to eq subject
+          end
+        end
+
+        context 'block that returns false' do
+          it 'returns an empty set with the same label as filter was called on' do
+            filter_result = subject.filter { false }
+            expect(filter_result.label).to eq subject.label
+            expect(filter_result.data).to eq []
+          end
+        end
+
+        context 'block that returns nil' do
+          it 'returns an empty set with the same label as filter was called on' do
+            filter_result = subject.filter { nil }
+            expect(filter_result.label).to eq subject.label
+            expect(filter_result.data).to eq []
+          end
+        end
+
+        context 'block checks for something more realistic' do
+          let(:expected_ds) { DataSet.new(label: 'Root', data: []) }
+
+          before do
+            bob_nl = DataSet.new(label: 'Bobs bouw NL', data: [])
+            bob_nl.add_item DataSet.new(label: 'Amsterdam', data: [DataSet.new(label: label_2014, data: 1), DataSet.new(label: label_2013, data: 33)])
+
+            bob_de = DataSet.new(label: 'Bobs bouw DE', data: [])
+            bob_de.add_item DataSet.new(label: 'Köln', data: [DataSet.new(label: label_2014, data: 7), DataSet.new(label: label_2015, data: 200)])
+
+            expected_ds.add_item(bob_nl)
+            expected_ds.add_item(bob_de)
+          end
+
+          it 'returns a set with data for Köln and Amsterdam' do
+            needed_cities = %w(Köln Amsterdam)
+            filter_result = subject.filter { |p, s| needed_cities.include?(s.label.name) ? true : nil }
+            expect(filter_result).to eq expected_ds
+          end
         end
       end
     end
@@ -747,6 +844,7 @@ describe DataSet do
           data: [
             DataSet.new(data: 234),
             DataSet.new(data: 46),
+            DataSet.new(data: [DataSet.new(data: 56), DataSet.new(data: 1), DataSet.new]),
           ],
         ).sum
       end
@@ -754,18 +852,30 @@ describe DataSet do
       it { is_expected.to eq 280 }
     end
 
-    context 'when the subject is a branch' do
+    context 'when the subject is a branch without direct leafs' do
       subject do
         DataSet.new(
           data: [
-            DataSet.new(data: 234),
-            DataSet.new(data: 46),
             DataSet.new(data: [DataSet.new(data: 56), DataSet.new(data: 1), DataSet.new]),
           ],
         ).sum
       end
 
-      it { is_expected.to eq 337 }
+      it { is_expected.to eq 57 }
+    end
+
+    context 'when the subject only has nil leafs' do
+      subject do
+        DataSet.new(
+          data: [
+            DataSet.new(data: nil),
+            DataSet.new(data: nil),
+            DataSet.new(data: nil),
+          ],
+        ).sum
+      end
+
+      it { is_expected.to eq nil }
     end
   end
 
@@ -835,135 +945,110 @@ describe DataSet do
     end
   end
 
-  describe '#combine' do
-    context 'when both sets have an array of data' do
-      let(:moe) { DataSet.new(label: 'Moe') }
-      let(:homer) { DataSet.new(label: 'Homer', data: [moe]) }
-      let(:marge) { DataSet.new(label: 'Marge') }
-      let(:set1) { DataSet.new(label: 'The family', data: [homer, marge]) }
+  describe '#transform_labels!' do
+    subject do
+      DataSet.new(label: 'root', data: [
+        DataSet.new(label: 'aaa', data: 3),
+        DataSet.new(label: 'bbb', data: 5),
+        DataSet.new(label: 'ccc', data: 7),
+      ])
+    end
 
-      let(:milhouse) { DataSet.new(label: 'Milhouse') }
-      let(:bart) { DataSet.new(label: 'Bart', data: [milhouse]) }
-      let(:lisa) { DataSet.new(label: 'Lisa') }
-      let(:set2) { DataSet.new(data: [bart, lisa]) }
+    it 'applies the given block to the labels of every (sub) set' do
+      subject.transform_labels! { |l| DataSet::Label.new(l.name.upcase) }
+      expect(subject).to eq(
+        DataSet.new(label: 'ROOT', data: [
+          DataSet.new(label: 'AAA', data: 3),
+          DataSet.new(label: 'BBB', data: 5),
+          DataSet.new(label: 'CCC', data: 7),
+        ])
+      )
+    end
 
-      subject { set1.combine(set2, :+) }
+    it 'passes the data set as second argument to the block for when this is useful' do
+      expect {
+        subject.transform_values! { |v, set| raise 'Spec failed' unless set.is_a?(DataSet) }
+      }.not_to raise_error
+    end
+  end
 
-      it 'returns a data_set with the label of the set combine was called on' do
-        expect(subject.label.id).to eq 'The family'
-      end
+  describe '#transform_values!' do
+    subject do
+      DataSet.new(data: [DataSet.new(data: 3), DataSet.new(data: 5), DataSet.new(data: 7)])
+    end
 
-      it 'has merged the array items onto each other according to level' do
-        expect(subject.children).to match_array [homer, marge, lisa, bart]
-      end
+    it 'applies the given block to the values (of the leafs)' do
+      subject.transform_values! { |v| v * 10 }
+      expect(subject).to eq(
+        DataSet.new(data: [DataSet.new(data: 30), DataSet.new(data: 50), DataSet.new(data: 70)])
+      )
+    end
 
-      it 'has not entered duplicates twice' do
-        set2 << homer
+    it 'passes the data set as second argument to the block for when this is useful' do
+      expect {
+        subject.transform_values! { |v, set| raise 'Spec failed' unless set.is_a?(DataSet) }
+      }.not_to raise_error
+    end
+  end
 
-        expect(subject.children).to match_array [homer, marge, lisa, bart]
-      end
+  describe '#merge' do
+    let(:set1) do
+      DataSet.new(label: 'Root', data: [
+        DataSet.new(label: 'Squirrels', data: 2),
+        DataSet.new(label: 'Trees', data: [
+          DataSet.new(label: 'Apple', data: 5),
+          DataSet.new(label: 'Pear', data: 3),
+        ]),
+        DataSet.new(label: 'Birds', data: 8),
+      ])
+    end
 
-      it 'merges underlying children of duplicates however' do
-        homer2 = homer.deep_dup
-        lenny = DataSet.new(label: "Lenny")
-        homer2.data = [lenny]
-        set2 << homer2
+    let(:set2) do
+      DataSet.new(label: 'Root', data: [
+        DataSet.new(label: 'Trees', data: [
+          DataSet.new(label: 'Pear', data: 4),
+          DataSet.new(label: 'Peach', data: 5),
+        ]),
+        DataSet.new(label: 'Squirrels', data: 1),
+        DataSet.new(label: 'People', data: 2),
+      ])
+    end
 
-        subject_homer = subject.children.find { |s| s.label.id == 'Homer' }
-        expect(subject_homer.children).to match_array [moe, lenny]
+    context 'without block' do
+      subject { set1.merge(set2) }
+
+      it 'merges the two sets overwriting values for the same label (path)' do
+        expect(subject).to eq(
+          DataSet.new(label: 'Root', data: [
+            DataSet.new(label: 'Squirrels', data: 1),
+            DataSet.new(label: 'Trees', data: [
+              DataSet.new(label: 'Apple', data: 5),
+              DataSet.new(label: 'Pear', data: 4),
+              DataSet.new(label: 'Peach', data: 5),
+            ]),
+            DataSet.new(label: 'Birds', data: 8),
+            DataSet.new(label: 'People', data: 2),
+          ])
+        )
       end
     end
 
-    context 'when both sets have non-array data' do
-      let(:set1) { DataSet.new(label: "Yearly", data: 100) }
-      let(:set2) { DataSet.new(label: "Monthly", data: 150) }
-      let(:operator) { :+ }
+    context 'with block' do
+      subject { set1.merge(set2) { |l, v1, v2| v1 + v2 } }
 
-      subject { set1.combine(set2, operator) }
-
-      it 'returns a new data_set with the label of the set combine was called on' do
-        expect(subject.label.id).to eq 'Yearly'
-      end
-
-      it 'returns nil if both data_sets have nil as data' do
-        set1.data = nil
-        set2.data = nil
-        expect(subject.data).to eq nil
-      end
-
-      describe 'calculation results' do
-        subject { set1.combine(set2, operator).value }
-
-        context 'operator for addition' do
-          let(:operator) { :+ }
-
-          it { is_expected.to eq 250 }
-        end
-
-        context 'operator for subtraction' do
-          let(:operator) { :- }
-
-          it { is_expected.to eq -50 }
-        end
-
-        context 'operator for division' do
-          context 'divisible numbers given' do
-            let(:operator) { :/ }
-
-            it { is_expected.to eq 100 / 150 }
-          end
-
-          context 'divisible numbers given' do
-            let(:operator) { :/ }
-            let(:set2) { DataSet.new(data: 0) }
-
-            it { is_expected.to eq nil }
-          end
-        end
-
-        context 'un-hardcoded operators' do
-          context 'operator for multiplications' do
-            let(:operator) { :* }
-
-            it { is_expected.to eq 15000 }
-          end
-
-          context 'either data set had nil as value' do
-            let(:operator) { :something_not_hardcoded }
-
-            it 'returns nil' do
-              set1.data = nil
-              expect(subject).to eq nil
-            end
-          end
-        end
-      end
-
-      context 'when both sets have children with atomic values' do
-        let(:january1) { DataSet.new(label: "January", data: 100) }
-        let(:february) { DataSet.new(label: "February", data: 600) }
-        let(:set1) { DataSet.new(label: "Office 1", data: [january1, february]) }
-
-        let(:january2) { DataSet.new(label: "January", data: 150) }
-        let(:set2) { DataSet.new(label: "Office 2", data: [january2]) }
-
-        it 'combines the arrays and applies the operator on the atomic children' do
-          expect(subject.children.size).to eq 2
-          expect(subject.label.name).to eq 'Office 1'
-          expect(subject.children.find { |s| s.label.name == 'January' }.value).to eq 250
-          expect(subject.children.find { |s| s.label.name == 'February' }.value).to eq 600
-        end
-      end
-
-      context 'when one set has array data and the other atomic data' do
-        let(:set1) { DataSet.new(label: "Yearly", data: [DataSet.new(label: 'January', data: 123)]) }
-        let(:set2) { DataSet.new(label: "Monthly", data: 150) }
-        let(:operator) { :anything }
-
-        it 'raises an error in either direction' do
-          expect { set1.combine(set2, operator) }.to raise_error(ArgumentError)
-          expect { set2.combine(set1, operator) }.to raise_error(ArgumentError)
-        end
+      it 'merges the two sets applying block to values for the same label (path)' do
+        expect(subject).to eq(
+          DataSet.new(label: 'Root', data: [
+            DataSet.new(label: 'Squirrels', data: 3),
+            DataSet.new(label: 'Trees', data: [
+              DataSet.new(label: 'Apple', data: 5),
+              DataSet.new(label: 'Pear', data: 7),
+              DataSet.new(label: 'Peach', data: 5),
+            ]),
+            DataSet.new(label: 'Birds', data: 8),
+            DataSet.new(label: 'People', data: 2),
+          ])
+        )
       end
     end
   end
@@ -982,9 +1067,9 @@ describe DataSet do
 
   describe '#find' do
     context 'block given' do
-      subject { data_set_root.find { |d| d.label.name == 'Junk food' } }
-
-      it { is_expected.to eq data_set_leaf_junk_food }
+      it 'recusrively searches for data set matching block' do
+        expect(data_set_root.find { |d| d.label.name == 'Junk food' }).to eq data_set_leaf_junk_food
+      end
     end
 
     context 'subtree_id directly passed' do
