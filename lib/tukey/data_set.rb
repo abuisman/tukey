@@ -134,7 +134,7 @@ class DataSet
     fail 'Cannot filter value DataSets' unless data_array?
     return self.dup if self.data.empty?
 
-    self.data.each_with_object(DataSet.new(label: label.deep_dup, data: [], parent: parent, id: id)) do |set, parent_set|
+    self.data.each_with_object(DataSet.new(label: label.deep_dup, data: nil, parent: parent, id: id)) do |set, parent_set|
       if block_given?
         condition_met = yield(parent_set, set)
       else
@@ -251,7 +251,7 @@ class DataSet
   def sum
     # Leafs are considered a sum of their underlying data_sets,
     # therefore we can just sum the leafs if present.
-    return value if leaf?
+    return value == [] ? nil : value if leaf? # TODO: Make redundant by not allowing [] in `data` to begin with
     values = (leafs.any? ? leafs.map(&:value) : children.map(&:sum)).compact
     return nil if values.empty?
     values.inject(&:+)
