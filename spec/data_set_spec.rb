@@ -698,7 +698,7 @@ describe DataSet do
           it 'returns an empty dataset with the same label as the set .filter was called on' do
             filter_result = subject.filter('You shall not find... me')
             expect(filter_result.label).to eq subject.label
-            expect(filter_result.data).to eq []
+            expect(filter_result.data).to eq nil
           end
         end
       end
@@ -739,7 +739,7 @@ describe DataSet do
           it 'returns an empty set with the same label as filter was called on' do
             filter_result = subject.filter { false }
             expect(filter_result.label).to eq subject.label
-            expect(filter_result.data).to eq []
+            expect(filter_result.data).to eq nil
           end
         end
 
@@ -747,7 +747,7 @@ describe DataSet do
           it 'returns an empty set with the same label as filter was called on' do
             filter_result = subject.filter { nil }
             expect(filter_result.label).to eq subject.label
-            expect(filter_result.data).to eq []
+            expect(filter_result.data).to eq nil
           end
         end
 
@@ -874,6 +874,12 @@ describe DataSet do
           ],
         ).sum
       end
+
+      it { is_expected.to eq nil }
+    end
+
+    context 'when the subject only has [] leafs' do
+      subject { DataSet.new(data: []).sum }
 
       it { is_expected.to eq nil }
     end
