@@ -257,6 +257,23 @@ class DataSet
     values.inject(&:+)
   end
 
+  def child_sum(by_labels: nil, by_leaf_labels: false)
+    raise 'choose either `by_leaf_labels` or `by_labels`' if leaf_labels == true && !by_labels.nil?
+    by_labels = leaf_labels if by_leaf_labels
+
+    children.map do |child|
+      if by_labels.nil?
+        values = child.sum
+      else
+        values = by_labels.map do |label|
+          [label, child.filter(label.id).sum]
+        end
+      end
+
+      [child.label, values]
+    end
+  end
+
   def average
     values = [reducable_values].flatten.compact
     return nil if values.empty?

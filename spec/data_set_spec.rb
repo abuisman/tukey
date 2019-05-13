@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe DataSet do
   let(:data_set_nil) { DataSet.new(label: 'I am nil', data: nil) }
-  let(:data_set_leaf_super_foods) { DataSet.new(label: 'Super foods', data: 123.4) }
+  let(:data_set_leaf_super_foods) { DataSet.new(label: 'Super foods', data: 33.4) }
   let(:data_set_leaf_junk_food) { DataSet.new(label: 'Junk food', data: 123.4) }
   let(:data_set_branch_food) { DataSet.new(label: 'Food', data: [data_set_leaf_junk_food]) }
   let(:data_set_branch_and_leaf_food) { DataSet.new(label: 'Food with leafs', data: [data_set_branch_food, data_set_leaf_super_foods]) }
@@ -882,6 +882,71 @@ describe DataSet do
       subject { DataSet.new(data: []).sum }
 
       it { is_expected.to eq nil }
+    end
+  end
+
+  describe '#child_sum' do
+    let!(:data_set_gadgets) {
+      DataSet.new(label: 'Gadgets', data: [
+        DataSet.new(label: 'TV', data: 400),
+        DataSet.new(label: 'Laptop', data: 1000)
+      ])
+    }
+
+    before do
+      data_set_branch_food << data_set_leaf_super_foods
+      data_set_root << data_set_gadgets
+    end
+
+    context 'no by_leaf_labels passed' do
+      it 'returns an array of label value pairs of all direct children' do
+        expect(data_set_root.child_sum).to eq [
+          [data_set_branch_food.label, 156.8],
+          [data_set_gadgets.label, 1400]
+        ]
+      end
+    end
+
+    describe 'label grouping' do
+      let!(:expenses_set) do
+        DataSet.new(label: 'Expenses', data: [
+          DataSet.new(label: 'Supermarket', data: [
+            DataSet.new(label: 'Amsterdam', data: [
+              DataSet.new(label: 'Dec-18', data: 33),
+              DataSet.new(label: 'Feb-19', data: 2),
+            ]),
+            DataSet.new(label: 'Nijmegen', data: [
+              DataSet.new(label: 'Jan-19', data: 100),
+              DataSet.new(label: 'Feb-19', data: 22),
+            ]),
+          ]),
+          DataSet.new(label: 'Internet', data: [
+            DataSet.new(label: 'Dec-18', data: 40),
+            DataSet.new(label: 'Jan-19', data: 40),
+            DataSet.new(label: 'Feb-19', data: 40),
+          ])
+        ])
+      end
+
+      context 'by_labels passed' do
+        it 'returns an array of labels for each child with values for each leaf label' do
+          labels = [DataSet::Label.new('Dec-18'), DataSet::Label.new('Jan-19'), DataSet::Label.new('Feb-19')]
+
+          expect(expenses_set.child_sum(by_labels: labels)).to eq([
+            [DataSet::Label.new('Supermarket'), [[DataSet::Label.new('Dec-18'), 33], [DataSet::Label.new('Jan-19'), 100], [DataSet::Label.new('Feb-19'), 24]]],
+            [DataSet::Label.new('Internet'), [[DataSet::Label.new('Dec-18'), 40], [DataSet::Label.new('Jan-19'), 40], [DataSet::Label.new('Feb-19'), 40]]],
+          ])
+        end
+      end
+
+      context 'by_leaf_labels passed' do
+        it 'returns an array of labels for each child with values for each leaf label' do
+          expect(expenses_set.child_sum(by_leaf_labels: true)).to eq([
+            [DataSet::Label.new('Supermarket'), [[DataSet::Label.new('Dec-18'), 33], [DataSet::Label.new('Feb-19'), 24], [DataSet::Label.new('Jan-19'), 100]]],
+            [DataSet::Label.new('Internet'), [[DataSet::Label.new('Dec-18'), 40], [DataSet::Label.new('Feb-19'), 40], [DataSet::Label.new('Jan-19'), 40]]],
+          ])
+        end
+      end
     end
   end
 
