@@ -131,7 +131,7 @@ class DataSet
   #
   def filter(leaf_label_id = nil, keep_leafs: false, orphan_strategy: :destroy, &block)
     fail ArgumentError, 'No block and no leaf_label_id passed' if !block_given? && leaf_label_id.nil?
-    fail 'Cannot filter value DataSets' unless data_array?
+    fail 'Cannot filter value-DataSets' unless data_array?
     return self.dup if self.data.empty?
 
     self.data.each_with_object(DataSet.new(label: label.deep_dup, data: nil, parent: parent, id: id)) do |set, parent_set|
@@ -305,6 +305,10 @@ class DataSet
       else # Simply overwrite data with other data
         merged_data_set.data = other_data_set.value
       end
+    elsif data.nil? || other_data_set.data.nil?
+      self.data = [] if data.nil?
+      other_data_set.data = [] if other_data_set.data.nil?
+      return self.merge(other_data_set, &block)
     else
       fail ArgumentError, "Can't merge array DataSet with value DataSet"
     end

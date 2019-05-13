@@ -628,7 +628,7 @@ describe DataSet do
       subject { DataSet.new(label: 'Root', data: 1) }
 
       it 'raises an error' do
-        expect { subject.filter { :foobar } }.to raise_error('Cannot filter value DataSets')
+        expect { subject.filter { :foobar } }.to raise_error('Cannot filter value-DataSets')
       end
     end
 
@@ -1006,6 +1006,9 @@ describe DataSet do
           DataSet.new(label: 'Pear', data: 3),
         ]),
         DataSet.new(label: 'Birds', data: 8),
+        DataSet.new(label: 'Buildings', data: [
+          DataSet.new(label: 'Death Star', data: 1)
+        ])
       ])
     end
 
@@ -1017,6 +1020,7 @@ describe DataSet do
         ]),
         DataSet.new(label: 'Squirrels', data: 1),
         DataSet.new(label: 'People', data: 2),
+        DataSet.new(label: 'Buildings', data: nil),
       ])
     end
 
@@ -1024,18 +1028,20 @@ describe DataSet do
       subject { set1.merge(set2) }
 
       it 'merges the two sets overwriting values for the same label (path)' do
-        expect(subject).to eq(
-          DataSet.new(label: 'Root', data: [
-            DataSet.new(label: 'Squirrels', data: 1),
-            DataSet.new(label: 'Trees', data: [
-              DataSet.new(label: 'Apple', data: 5),
-              DataSet.new(label: 'Pear', data: 4),
-              DataSet.new(label: 'Peach', data: 5),
-            ]),
-            DataSet.new(label: 'Birds', data: 8),
-            DataSet.new(label: 'People', data: 2),
-          ])
-        )
+        ds = DataSet.new(label: 'Root', data: [
+          DataSet.new(label: 'Squirrels', data: 1),
+          DataSet.new(label: 'Trees', data: [
+            DataSet.new(label: 'Apple', data: 5),
+            DataSet.new(label: 'Pear', data: 4),
+            DataSet.new(label: 'Peach', data: 5),
+          ]),
+          DataSet.new(label: 'Birds', data: 8),
+          DataSet.new(label: 'Buildings', data: [
+            DataSet.new(label: 'Death Star', data: 1),
+          ]),
+          DataSet.new(label: 'People', data: 2),
+        ])
+        expect(subject).to eq(ds)
       end
     end
 
@@ -1052,6 +1058,9 @@ describe DataSet do
               DataSet.new(label: 'Peach', data: 5),
             ]),
             DataSet.new(label: 'Birds', data: 8),
+            DataSet.new(label: 'Buildings', data: [
+              DataSet.new(label: 'Death Star', data: 1),
+            ]),
             DataSet.new(label: 'People', data: 2),
           ])
         )
