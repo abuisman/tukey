@@ -342,6 +342,10 @@ class DataSet
     final_s
   end
 
+  def pretty_print
+    puts pretty_inspect
+  end
+
   def each(&block)
     yield self
     children.each { |member| member.each(&block) } if data_array?
