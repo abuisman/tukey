@@ -928,6 +928,12 @@ describe DataSet do
         ])
       end
 
+      context 'both passed' do
+        it 'raises' do
+          expect { expenses_set.child_sum(leaf_labels: ['Test'], by_leaf_labels: true) }.to raise_error
+        end
+      end
+
       context 'by_labels passed' do
         it 'returns an array of labels for each child with values for each leaf label' do
           labels = [DataSet::Label.new('Dec-18'), DataSet::Label.new('Jan-19'), DataSet::Label.new('Feb-19')]

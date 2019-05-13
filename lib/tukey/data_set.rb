@@ -258,7 +258,7 @@ class DataSet
   end
 
   def child_sum(by_labels: nil, by_leaf_labels: false)
-    raise 'choose either `by_leaf_labels` or `by_labels`' if leaf_labels == true && !by_labels.nil?
+    raise 'choose either `by_leaf_labels` or `by_labels`' if by_leaf_labels == true && !by_labels.nil?
     by_labels = leaf_labels if by_leaf_labels
 
     children.map do |child|
