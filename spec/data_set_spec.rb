@@ -901,31 +901,36 @@ describe DataSet do
     context 'no by_leaf_labels passed' do
       it 'returns an array of label value pairs of all direct children' do
         expect(data_set_root.child_sum).to eq [
-          [data_set_branch_food.label, 156.8],
-          [data_set_gadgets.label, 1400]
+          [data_set_branch_food, data_set_branch_food.label, 156.8],
+          [data_set_gadgets, data_set_gadgets.label, 1400]
         ]
       end
     end
 
     describe 'label grouping' do
-      let!(:expenses_set) do
-        DataSet.new(label: 'Expenses', data: [
-          DataSet.new(label: 'Supermarket', data: [
-            DataSet.new(label: 'Amsterdam', data: [
-              DataSet.new(label: 'Dec-18', data: 33),
-              DataSet.new(label: 'Feb-19', data: 2),
-            ]),
-            DataSet.new(label: 'Nijmegen', data: [
-              DataSet.new(label: 'Jan-19', data: 100),
-              DataSet.new(label: 'Feb-19', data: 22),
-            ]),
+      let!(:supermarket_set) do
+        DataSet.new(label: 'Supermarket', data: [
+          DataSet.new(label: 'Amsterdam', data: [
+            DataSet.new(label: 'Dec-18', data: 33),
+            DataSet.new(label: 'Feb-19', data: 2),
           ]),
-          DataSet.new(label: 'Internet', data: [
-            DataSet.new(label: 'Dec-18', data: 40),
-            DataSet.new(label: 'Jan-19', data: 40),
-            DataSet.new(label: 'Feb-19', data: 40),
-          ])
+          DataSet.new(label: 'Nijmegen', data: [
+            DataSet.new(label: 'Jan-19', data: 100),
+            DataSet.new(label: 'Feb-19', data: 22),
+          ]),
         ])
+      end
+
+      let(:internet_set) do
+        internet_set = DataSet.new(label: 'Internet', data: [
+          DataSet.new(label: 'Dec-18', data: 40),
+          DataSet.new(label: 'Jan-19', data: 40),
+          DataSet.new(label: 'Feb-19', data: 40),
+        ])
+      end
+
+      let!(:expenses_set) do
+        expenses_set = DataSet.new(label: 'Expenses', data: [supermarket_set, internet_set])
       end
 
       context 'both passed' do
@@ -939,8 +944,20 @@ describe DataSet do
           labels = [DataSet::Label.new('Dec-18'), DataSet::Label.new('Jan-19'), DataSet::Label.new('Feb-19')]
 
           expect(expenses_set.child_sum(by_labels: labels)).to eq([
-            [DataSet::Label.new('Supermarket'), [[DataSet::Label.new('Dec-18'), 33], [DataSet::Label.new('Jan-19'), 100], [DataSet::Label.new('Feb-19'), 24]]],
-            [DataSet::Label.new('Internet'), [[DataSet::Label.new('Dec-18'), 40], [DataSet::Label.new('Jan-19'), 40], [DataSet::Label.new('Feb-19'), 40]]],
+            [
+              supermarket_set, DataSet::Label.new('Supermarket'), [
+                [DataSet::Label.new('Dec-18'), 33],
+                [DataSet::Label.new('Jan-19'), 100],
+                [DataSet::Label.new('Feb-19'), 24],
+              ]
+            ],
+            [
+              internet_set, DataSet::Label.new('Internet'), [
+                [DataSet::Label.new('Dec-18'), 40],
+                [DataSet::Label.new('Jan-19'), 40],
+                [DataSet::Label.new('Feb-19'), 40],
+              ]
+            ],
           ])
         end
       end
@@ -948,8 +965,20 @@ describe DataSet do
       context 'by_leaf_labels passed' do
         it 'returns an array of labels for each child with values for each leaf label' do
           expect(expenses_set.child_sum(by_leaf_labels: true)).to eq([
-            [DataSet::Label.new('Supermarket'), [[DataSet::Label.new('Dec-18'), 33], [DataSet::Label.new('Feb-19'), 24], [DataSet::Label.new('Jan-19'), 100]]],
-            [DataSet::Label.new('Internet'), [[DataSet::Label.new('Dec-18'), 40], [DataSet::Label.new('Feb-19'), 40], [DataSet::Label.new('Jan-19'), 40]]],
+            [
+              supermarket_set, DataSet::Label.new('Supermarket'), [
+                [DataSet::Label.new('Dec-18'), 33],
+                [DataSet::Label.new('Feb-19'), 24],
+                [DataSet::Label.new('Jan-19'), 100]
+              ]
+            ],
+            [
+              internet_set, DataSet::Label.new('Internet'), [
+                [DataSet::Label.new('Dec-18'), 40],
+                [DataSet::Label.new('Feb-19'), 40],
+                [DataSet::Label.new('Jan-19'), 40]
+              ]
+            ],
           ])
         end
       end

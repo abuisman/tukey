@@ -270,7 +270,7 @@ class DataSet
         end
       end
 
-      [child.label, values]
+      [child, child.label, values]
     end
   end
 
