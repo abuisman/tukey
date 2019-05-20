@@ -131,7 +131,17 @@ class DataSet
   #
   def filter(leaf_label_id = nil, keep_leafs: false, orphan_strategy: :destroy, &block)
     fail ArgumentError, 'No block and no leaf_label_id passed' if !block_given? && leaf_label_id.nil?
-    fail 'Cannot filter value-DataSets' unless data_array?
+
+    unless data_array?
+      unless block_given?
+        return self.dup if self.label.id == leaf_label_id
+      else
+        return self.dup if yield(self.dup, self.dup)
+      end
+
+      return []
+    end
+
     return self.dup if self.data.empty?
 
     self.data.each_with_object(DataSet.new(label: label.deep_dup, data: nil, parent: parent, id: id)) do |set, parent_set|
@@ -239,6 +249,11 @@ class DataSet
     new_set
   end
 
+  def inspect
+    data_display = data_array? ? "children: [#{children.map { |d| "#{d.label.name}..." }.join(', ')}]" : value
+    "<DataSet:#{object_id} label=#{label.name} data: #{data_display}>"
+  end
+
   def value
     fail NotImplementedError, 'DataSet is not a leaf and thus has no value' unless leaf?
     data
@@ -266,7 +281,7 @@ class DataSet
         values = child.sum
       else
         values = by_labels.map do |label|
-          [label, child.filter(label.id).sum]
+          [label, child.filter(label.id)&.sum]
         end
       end
 
@@ -336,7 +351,7 @@ class DataSet
     data.is_a? Array
   end
 
-  def pretty_inspect(level = 0, final_s: '')
+  def nice_inspect(level = 0, final_s: '')
     prefix = ''
 
     if root?
@@ -355,12 +370,12 @@ class DataSet
 
     return final_s if children.none?
 
-    children.each { |c| final_s << c.pretty_inspect(level + 1) }
+    children.each { |c| final_s << c.nice_inspect(level + 1) }
     final_s
   end
 
   def pretty_print
-    puts pretty_inspect
+    puts nice_inspect
   end
 
   def each(&block)

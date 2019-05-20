@@ -509,11 +509,11 @@ describe DataSet do
     end
   end
 
-  describe '#pretty_inspect' do
+  describe '#nice_inspect' do
     it 'returns a string with at least all the label names within it' do
-      expect(data_set_root.pretty_inspect).to include 'Junk food'
-      expect(data_set_root.pretty_inspect).to include 'Food'
-      expect(data_set_root.pretty_inspect).to include 'Expenses per year'
+      expect(data_set_root.nice_inspect).to include 'Junk food'
+      expect(data_set_root.nice_inspect).to include 'Food'
+      expect(data_set_root.nice_inspect).to include 'Expenses per year'
     end
   end
 
@@ -623,14 +623,6 @@ describe DataSet do
 
   describe '#filter' do
     subject { DataSet.new(label: 'Root', data: []) }
-
-    context 'on value DataSet' do
-      subject { DataSet.new(label: 'Root', data: 1) }
-
-      it 'raises an error' do
-        expect { subject.filter { :foobar } }.to raise_error('Cannot filter value-DataSets')
-      end
-    end
 
     context 'on empty data_set' do
       let(:expected_ds) { DataSet.new(label: 'Root', data: []) }
@@ -933,6 +925,8 @@ describe DataSet do
         expenses_set = DataSet.new(label: 'Expenses', data: [supermarket_set, internet_set])
       end
 
+      let(:wanted_labels) { [DataSet::Label.new('Dec-18'), DataSet::Label.new('Jan-19'), DataSet::Label.new('Feb-19')] }
+
       context 'both passed' do
         it 'raises' do
           expect { expenses_set.child_sum(leaf_labels: ['Test'], by_leaf_labels: true) }.to raise_error
@@ -941,9 +935,7 @@ describe DataSet do
 
       context 'by_labels passed' do
         it 'returns an array of labels for each child with values for each leaf label' do
-          labels = [DataSet::Label.new('Dec-18'), DataSet::Label.new('Jan-19'), DataSet::Label.new('Feb-19')]
-
-          expect(expenses_set.child_sum(by_labels: labels)).to eq([
+          expect(expenses_set.child_sum(by_labels: wanted_labels)).to eq([
             [
               supermarket_set, DataSet::Label.new('Supermarket'), [
                 [DataSet::Label.new('Dec-18'), 33],
@@ -959,6 +951,45 @@ describe DataSet do
               ]
             ],
           ])
+        end
+
+        it 'handles running child_sum on a set that has leafs (no filtering error would otherwise be raised)' do
+          modem_label = DataSet::Label.new('Modem repairs')
+
+          modem_dec = DataSet.new(label: 'Dec-18', data: 10)
+          modem_jan = DataSet.new(label: 'Jan-19', data: 300)
+
+          internet_set << DataSet.new(label: modem_label, data: [modem_dec, modem_jan])
+
+          expect(internet_set.child_sum(by_labels: wanted_labels)).to eq [
+            [
+              internet_set.children[0], internet_set.children[0].label, [
+                [DataSet::Label.new('Dec-18'), 40],
+                [DataSet::Label.new('Jan-19'), 0],
+                [DataSet::Label.new('Feb-19'), 0],
+              ]
+            ],
+            [
+              internet_set.children[1], internet_set.children[1].label, [
+                [DataSet::Label.new('Dec-18'), 0],
+                [DataSet::Label.new('Jan-19'), 40],
+                [DataSet::Label.new('Feb-19'), 0],
+              ]
+            ],
+            [
+              internet_set.children[2], internet_set.children[2].label, [
+                [DataSet::Label.new('Dec-18'), 0],
+                [DataSet::Label.new('Jan-19'), 0],
+                [DataSet::Label.new('Feb-19'), 40],
+              ]
+            ],
+            [internet_set.children[3], internet_set.children[3].label, [
+                [modem_dec.label, 10],
+                [modem_jan.label, 300],
+                [DataSet::Label.new('Feb-19'), nil],
+              ]
+            ]
+          ]
         end
       end
 
