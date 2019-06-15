@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe DataSet do
@@ -8,9 +10,9 @@ describe DataSet do
   let(:data_set_branch_and_leaf_food) { DataSet.new(label: 'Food with leafs', data: [data_set_branch_food, data_set_leaf_super_foods]) }
   let!(:data_set_root) { DataSet.new(label: 'Expenses per year', data: [data_set_branch_food]) }
 
-  %w(label data parent).each do |att|
+  %w[label data parent].each do |att|
     att = att.to_sym
-    it "has a method called att" do
+    it 'has a method called att' do
       expect(subject.methods.include?(att)).to eq true
     end
   end
@@ -181,7 +183,7 @@ describe DataSet do
 
         it 'returns -1 when data of set1 is smaller than that of set2' do
           set2.data = 200
-          expect(set1 <=> set2).to eq -1
+          expect(set1 <=> set2).to eq(-1)
         end
 
         it 'returns -1 when they are the same' do
@@ -195,17 +197,17 @@ describe DataSet do
         let(:label2) { DataSet::Label.new(id: { do_it: 'just do it' }, name: 'Say it') }
         let(:data1) { [DataSet.new(label: 'I am different')] }
         let(:data2) { [DataSet.new(label: 'Different am I')] }
-        let(:set1) { DataSet.new(label: label1, data: [1,2,3]) }
-        let(:set2) { DataSet.new(label: label2, data: [3,2,1]) }
+        let(:set1) { DataSet.new(label: label1, data: [1, 2, 3]) }
+        let(:set2) { DataSet.new(label: label2, data: [3, 2, 1]) }
 
         it 'returns 1 when the size of set1\'s data is bigger than that of set2\'s data' do
-          set1.data = [1,2,3,4,5]
+          set1.data = [1, 2, 3, 4, 5]
           expect(set1 <=> set2).to eq 1
         end
 
         it 'returns -1 when the size of set1\'s data is smaller than that of set2\'s data' do
-          set1.data = [1,2]
-          expect(set1 <=> set2).to eq -1
+          set1.data = [1, 2]
+          expect(set1 <=> set2).to eq(-1)
         end
 
         it 'returns 0 when the size of data is the same' do
@@ -214,7 +216,7 @@ describe DataSet do
       end
 
       context 'when the first data set is an array and the second is not' do
-        let(:set1) { DataSet.new(data: [1,2,3]) }
+        let(:set1) { DataSet.new(data: [1, 2, 3]) }
         let(:set2) { DataSet.new(data: 1) }
 
         it 'returns 1' do
@@ -224,10 +226,10 @@ describe DataSet do
 
       context 'when the second data set is an array and the first is not' do
         let(:set1) { DataSet.new(data: 4) }
-        let(:set2) { DataSet.new(data: [4,5,6]) }
+        let(:set2) { DataSet.new(data: [4, 5, 6]) }
 
         it 'returns -1' do
-          expect(set1 <=> set2).to eq -1
+          expect(set1 <=> set2).to eq(-1)
         end
       end
     end
@@ -328,9 +330,11 @@ describe DataSet do
     context 'enumerable items passed in' do
       it 'sets the appropriate parent attributes on every child' do
         data_set_root.data = [
-          DataSet.new(label: 'Temp category', data: [
-            DataSet.new(label: 'Gauge test', data: 212),
-          ]),
+          DataSet.new(
+            label: 'Temp category', data: [
+              DataSet.new(label: 'Gauge test', data: 212)
+            ]
+          )
         ]
 
         expect(data_set_root.data.first.data.first.parent.label.name).to eq('Temp category')
@@ -450,7 +454,7 @@ describe DataSet do
   end
 
   describe '#oneling?' do
-    context 'when subject is a leaf'  do
+    context 'when subject is a leaf' do
       subject { DataSet.new(data: 100) }
       let!(:root_data_set) { DataSet.new(data: [subject]) }
 
@@ -469,7 +473,7 @@ describe DataSet do
       end
     end
 
-    context 'when subject is not a leaf'  do
+    context 'when subject is not a leaf' do
       subject { DataSet.new(data: [DataSet.new(data: 100)]) }
       let!(:root_data_set) { DataSet.new(data: [subject]) }
 
@@ -579,8 +583,6 @@ describe DataSet do
       end
     end
   end
-
-  # rubocop:disable Style/SingleLineBlockParams
   describe '#reduce' do
     context 'when subject is a empty dataset' do
       subject { DataSet.new.reduce { |v| [v].flatten.compact.size } }
@@ -597,8 +599,8 @@ describe DataSet do
         DataSet.new(
           data: [
             DataSet.new(data: 234),
-            DataSet.new(data: 46),
-          ],
+            DataSet.new(data: 46)
+          ]
         ).reduce { |v| v.flatten.compact.size }
       end
 
@@ -611,15 +613,14 @@ describe DataSet do
           data: [
             DataSet.new(data: 234),
             DataSet.new(data: 46),
-            DataSet.new(data: [DataSet.new(data: 56), DataSet.new(data: 1), DataSet.new]),
-          ],
+            DataSet.new(data: [DataSet.new(data: 56), DataSet.new(data: 1), DataSet.new])
+          ]
         ).reduce { |v| v.flatten.compact.size }
       end
 
       it { is_expected.to eq 4 }
     end
   end
-  # rubocop:enable Style/SingleLineBlockParams
 
   describe '#filter' do
     subject { DataSet.new(label: 'Root', data: []) }
@@ -698,7 +699,7 @@ describe DataSet do
       context 'options' do
         context 'orphan_strategy: :adopt' do
           it 'adds children of rejected nodes to their parent' do
-            result_set = subject.filter(orphan_strategy: :adopt) do |parent, child|
+            result_set = subject.filter(orphan_strategy: :adopt) do |_parent, child|
               if child.label.id == 'Bobs bouw NL'
                 false
               elsif child.leaf?
@@ -758,8 +759,8 @@ describe DataSet do
           end
 
           it 'returns a set with data for Köln and Amsterdam' do
-            needed_cities = %w(Köln Amsterdam)
-            filter_result = subject.filter { |p, s| needed_cities.include?(s.label.name) ? true : nil }
+            needed_cities = %w[Köln Amsterdam]
+            filter_result = subject.filter { |_p, s| needed_cities.include?(s.label.name) ? true : nil }
             expect(filter_result).to eq expected_ds
           end
         end
@@ -802,7 +803,7 @@ describe DataSet do
       end
 
       context 'data is something else' do
-        let (:data) { 1 }
+        let(:data) { 1 }
 
         it 'returns false' do
           expect(subject.empty?).to eq true
@@ -836,8 +837,8 @@ describe DataSet do
           data: [
             DataSet.new(data: 234),
             DataSet.new(data: 46),
-            DataSet.new(data: [DataSet.new(data: 56), DataSet.new(data: 1), DataSet.new]),
-          ],
+            DataSet.new(data: [DataSet.new(data: 56), DataSet.new(data: 1), DataSet.new])
+          ]
         ).sum
       end
 
@@ -848,8 +849,8 @@ describe DataSet do
       subject do
         DataSet.new(
           data: [
-            DataSet.new(data: [DataSet.new(data: 56), DataSet.new(data: 1), DataSet.new]),
-          ],
+            DataSet.new(data: [DataSet.new(data: 56), DataSet.new(data: 1), DataSet.new])
+          ]
         ).sum
       end
 
@@ -862,8 +863,8 @@ describe DataSet do
           data: [
             DataSet.new(data: nil),
             DataSet.new(data: nil),
-            DataSet.new(data: nil),
-          ],
+            DataSet.new(data: nil)
+          ]
         ).sum
       end
 
@@ -878,12 +879,12 @@ describe DataSet do
   end
 
   describe '#child_sum' do
-    let!(:data_set_gadgets) {
+    let!(:data_set_gadgets) do
       DataSet.new(label: 'Gadgets', data: [
         DataSet.new(label: 'TV', data: 400),
         DataSet.new(label: 'Laptop', data: 1000)
       ])
-    }
+    end
 
     before do
       data_set_branch_food << data_set_leaf_super_foods
@@ -904,25 +905,25 @@ describe DataSet do
         DataSet.new(label: 'Supermarket', data: [
           DataSet.new(label: 'Amsterdam', data: [
             DataSet.new(label: 'Dec-18', data: 33),
-            DataSet.new(label: 'Feb-19', data: 2),
+            DataSet.new(label: 'Feb-19', data: 2)
           ]),
           DataSet.new(label: 'Nijmegen', data: [
             DataSet.new(label: 'Jan-19', data: 100),
-            DataSet.new(label: 'Feb-19', data: 22),
-          ]),
+            DataSet.new(label: 'Feb-19', data: 22)
+          ])
         ])
       end
 
       let(:internet_set) do
-        internet_set = DataSet.new(label: 'Internet', data: [
+        DataSet.new(label: 'Internet', data: [
           DataSet.new(label: 'Dec-18', data: 40),
           DataSet.new(label: 'Jan-19', data: 40),
-          DataSet.new(label: 'Feb-19', data: 40),
+          DataSet.new(label: 'Feb-19', data: 40)
         ])
       end
 
       let!(:expenses_set) do
-        expenses_set = DataSet.new(label: 'Expenses', data: [supermarket_set, internet_set])
+        DataSet.new(label: 'Expenses', data: [supermarket_set, internet_set])
       end
 
       let(:wanted_labels) { [DataSet::Label.new('Dec-18'), DataSet::Label.new('Jan-19'), DataSet::Label.new('Feb-19')] }
@@ -940,16 +941,16 @@ describe DataSet do
               supermarket_set, DataSet::Label.new('Supermarket'), [
                 [DataSet::Label.new('Dec-18'), 33],
                 [DataSet::Label.new('Jan-19'), 100],
-                [DataSet::Label.new('Feb-19'), 24],
+                [DataSet::Label.new('Feb-19'), 24]
               ]
             ],
             [
               internet_set, DataSet::Label.new('Internet'), [
                 [DataSet::Label.new('Dec-18'), 40],
                 [DataSet::Label.new('Jan-19'), 40],
-                [DataSet::Label.new('Feb-19'), 40],
+                [DataSet::Label.new('Feb-19'), 40]
               ]
-            ],
+            ]
           ])
         end
 
@@ -966,29 +967,28 @@ describe DataSet do
               internet_set.children[0], internet_set.children[0].label, [
                 [DataSet::Label.new('Dec-18'), 40],
                 [DataSet::Label.new('Jan-19'), 0],
-                [DataSet::Label.new('Feb-19'), 0],
+                [DataSet::Label.new('Feb-19'), 0]
               ]
             ],
             [
               internet_set.children[1], internet_set.children[1].label, [
                 [DataSet::Label.new('Dec-18'), 0],
                 [DataSet::Label.new('Jan-19'), 40],
-                [DataSet::Label.new('Feb-19'), 0],
+                [DataSet::Label.new('Feb-19'), 0]
               ]
             ],
             [
               internet_set.children[2], internet_set.children[2].label, [
                 [DataSet::Label.new('Dec-18'), 0],
                 [DataSet::Label.new('Jan-19'), 0],
-                [DataSet::Label.new('Feb-19'), 40],
+                [DataSet::Label.new('Feb-19'), 40]
               ]
             ],
             [internet_set.children[3], internet_set.children[3].label, [
-                [modem_dec.label, 10],
-                [modem_jan.label, 300],
-                [DataSet::Label.new('Feb-19'), nil],
-              ]
-            ]
+              [modem_dec.label, 10],
+              [modem_jan.label, 300],
+              [DataSet::Label.new('Feb-19'), nil]
+            ]]
           ]
         end
       end
@@ -1009,7 +1009,7 @@ describe DataSet do
                 [DataSet::Label.new('Feb-19'), 40],
                 [DataSet::Label.new('Jan-19'), 40]
               ]
-            ],
+            ]
           ])
         end
       end
@@ -1032,8 +1032,8 @@ describe DataSet do
         DataSet.new(
           data: [
             DataSet.new(data: 234),
-            DataSet.new(data: 46),
-          ],
+            DataSet.new(data: 46)
+          ]
         ).average
       end
       it { is_expected.to eq 140 }
@@ -1045,12 +1045,12 @@ describe DataSet do
           data: [
             DataSet.new(data: 234),
             DataSet.new(data: 46),
-            DataSet.new(data: [DataSet.new(data: 56), DataSet.new(data: 1), DataSet.new]),
-          ],
+            DataSet.new(data: [DataSet.new(data: 56), DataSet.new(data: 1), DataSet.new])
+          ]
         ).average
       end
 
-      it "returns 84.25" do
+      it 'returns 84.25' do
         is_expected.to eq 84.25
       end
     end
@@ -1073,8 +1073,8 @@ describe DataSet do
           data: [
             DataSet.new(data: 234),
             DataSet.new(data: 46),
-            DataSet.new(data: [DataSet.new(data: 56), DataSet.new(data: 1)]),
-          ],
+            DataSet.new(data: [DataSet.new(data: 56), DataSet.new(data: 1)])
+          ]
         ).reducable_values
       end
 
@@ -1087,7 +1087,7 @@ describe DataSet do
       DataSet.new(label: 'root', data: [
         DataSet.new(label: 'aaa', data: 3),
         DataSet.new(label: 'bbb', data: 5),
-        DataSet.new(label: 'ccc', data: 7),
+        DataSet.new(label: 'ccc', data: 7)
       ])
     end
 
@@ -1097,15 +1097,15 @@ describe DataSet do
         DataSet.new(label: 'ROOT', data: [
           DataSet.new(label: 'AAA', data: 3),
           DataSet.new(label: 'BBB', data: 5),
-          DataSet.new(label: 'CCC', data: 7),
+          DataSet.new(label: 'CCC', data: 7)
         ])
       )
     end
 
     it 'passes the data set as second argument to the block for when this is useful' do
-      expect {
-        subject.transform_values! { |v, set| raise 'Spec failed' unless set.is_a?(DataSet) }
-      }.not_to raise_error
+      expect do
+        subject.transform_values! { |_v, set| raise 'Spec failed' unless set.is_a?(DataSet) }
+      end.not_to raise_error
     end
   end
 
@@ -1122,9 +1122,9 @@ describe DataSet do
     end
 
     it 'passes the data set as second argument to the block for when this is useful' do
-      expect {
-        subject.transform_values! { |v, set| raise 'Spec failed' unless set.is_a?(DataSet) }
-      }.not_to raise_error
+      expect do
+        subject.transform_values! { |_v, set| raise 'Spec failed' unless set.is_a?(DataSet) }
+      end.not_to raise_error
     end
   end
 
@@ -1134,7 +1134,7 @@ describe DataSet do
         DataSet.new(label: 'Squirrels', data: 2),
         DataSet.new(label: 'Trees', data: [
           DataSet.new(label: 'Apple', data: 5),
-          DataSet.new(label: 'Pear', data: 3),
+          DataSet.new(label: 'Pear', data: 3)
         ]),
         DataSet.new(label: 'Birds', data: 8),
         DataSet.new(label: 'Buildings', data: [
@@ -1147,11 +1147,11 @@ describe DataSet do
       DataSet.new(label: 'Root', data: [
         DataSet.new(label: 'Trees', data: [
           DataSet.new(label: 'Pear', data: 4),
-          DataSet.new(label: 'Peach', data: 5),
+          DataSet.new(label: 'Peach', data: 5)
         ]),
         DataSet.new(label: 'Squirrels', data: 1),
         DataSet.new(label: 'People', data: 2),
-        DataSet.new(label: 'Buildings', data: nil),
+        DataSet.new(label: 'Buildings', data: nil)
       ])
     end
 
@@ -1164,20 +1164,20 @@ describe DataSet do
           DataSet.new(label: 'Trees', data: [
             DataSet.new(label: 'Apple', data: 5),
             DataSet.new(label: 'Pear', data: 4),
-            DataSet.new(label: 'Peach', data: 5),
+            DataSet.new(label: 'Peach', data: 5)
           ]),
           DataSet.new(label: 'Birds', data: 8),
           DataSet.new(label: 'Buildings', data: [
-            DataSet.new(label: 'Death Star', data: 1),
+            DataSet.new(label: 'Death Star', data: 1)
           ]),
-          DataSet.new(label: 'People', data: 2),
+          DataSet.new(label: 'People', data: 2)
         ])
         expect(subject).to eq(ds)
       end
     end
 
     context 'with block' do
-      subject { set1.merge(set2) { |l, v1, v2| v1 + v2 } }
+      subject { set1.merge(set2) { |_l, v1, v2| v1 + v2 } }
 
       it 'merges the two sets applying block to values for the same label (path)' do
         expect(subject).to eq(
@@ -1186,13 +1186,13 @@ describe DataSet do
             DataSet.new(label: 'Trees', data: [
               DataSet.new(label: 'Apple', data: 5),
               DataSet.new(label: 'Pear', data: 7),
-              DataSet.new(label: 'Peach', data: 5),
+              DataSet.new(label: 'Peach', data: 5)
             ]),
             DataSet.new(label: 'Birds', data: 8),
             DataSet.new(label: 'Buildings', data: [
-              DataSet.new(label: 'Death Star', data: 1),
+              DataSet.new(label: 'Death Star', data: 1)
             ]),
-            DataSet.new(label: 'People', data: 2),
+            DataSet.new(label: 'People', data: 2)
           ])
         )
       end
@@ -1233,43 +1233,43 @@ describe DataSet do
 
       context 'given id that is not in the tree' do
         it 'returns nil' do
-          expect(data_set_root.find(12332212331)).to eq nil
+          expect(data_set_root.find(12_332_212_331)).to eq nil
         end
       end
     end
   end
 
   describe '#to_comparable_h' do
-    let(:node_with_meta) { DataSet.new(data: 20, label: { id: "Meta", name: "My label has meta", meta: { store: "Mc Do" } } ) }
+    let(:node_with_meta) { DataSet.new(data: 20, label: { id: 'Meta', name: 'My label has meta', meta: { store: 'Mc Do' } }) }
 
     it 'creates a hash WITH the atomic data' do
-      expect(node_with_meta.to_comparable_h).to eq( {
+      expect(node_with_meta.to_comparable_h).to eq(
         id: node_with_meta.id,
         data: 20,
         label: {
-          id: "Meta",
-          name: "My label has meta",
+          id: 'Meta',
+          name: 'My label has meta',
           meta: {
-            store: 'Mc Do'
-          }
+            store: 'Mc Do',
+          },
         }
-      })
+      )
     end
 
     it 'creates a hash WITHOUT data when data is enumerable' do
-      expect(data_set_root.to_comparable_h).to eq({
+      expect(data_set_root.to_comparable_h).to eq(
         id: data_set_root.id,
         label: {
           id: 'Expenses per year',
           name: 'Expenses per year',
           meta: {},
         }
-      })
+      )
     end
   end
 
   describe '#find_by' do
-    let(:node_with_meta) { DataSet.new(data: 20, label: { id: "Meta", name: "My label has meta", meta: { store: "Mc Do" } } ) }
+    let(:node_with_meta) { DataSet.new(data: 20, label: { id: 'Meta', name: 'My label has meta', meta: { store: 'Mc Do' } }) }
 
     before { data_set_branch_food << node_with_meta }
 

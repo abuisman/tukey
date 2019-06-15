@@ -1,12 +1,14 @@
+# frozen_string_literal: true
+
 require 'securerandom'
-require File.join(File.dirname(__FILE__), "data_set", "label")
+require File.join(File.dirname(__FILE__), 'data_set', 'label')
 
 class DataSet
   include Enumerable
 
   attr_accessor :label
 
-  attr_accessor :data
+  attr_reader :data
   attr_accessor :parent
   attr_reader :id
 
@@ -24,17 +26,18 @@ class DataSet
     elsif label.is_a?(Hash)
       @label = DataSet::Label.new(label.delete(:name), **label)
     else
-      fail ArgumentError, 'Given unsupported label type to DataSet initialize'
+      raise ArgumentError, 'Given unsupported label type to DataSet initialize'
     end
   end
 
   def <<(item)
     self.data ||= []
-    fail(CannotAddToNonEnumerableData, parent: self, item: item) unless data_array?
+    raise(CannotAddToNonEnumerableData, parent: self, item: item) unless data_array?
+
     item.parent = self
     data.push(item)
   end
-  alias_method :add_item, :<<
+  alias add_item <<
 
   def data=(items)
     items.each { |item| item.parent = self if item.is_a? DataSet } if items.is_a? Enumerable
@@ -43,6 +46,7 @@ class DataSet
 
   def children
     return data if data_array?
+
     []
   end
 
@@ -52,11 +56,13 @@ class DataSet
 
   def siblings
     return [] if parent.nil?
+
     parent.children.reject { |c| c == self }
   end
 
   def ancestors
     return [] if parent.nil?
+
     ancs = []
     par = parent
     require 'pry'
@@ -84,7 +90,7 @@ class DataSet
     if data_array?
       data.all?(&:empty?)
     else
-      data.respond_to?(:empty?) ? !!data.empty? : !data
+      data.respond_to?(:empty?) ? data.empty? : !data
     end
   end
 
@@ -108,6 +114,7 @@ class DataSet
     return [] if leaf?
     return [] if children.none?
     return children.map(&:label) if twig?
+
     children.map(&:leaf_labels).flatten.uniq
   end
 
@@ -126,29 +133,30 @@ class DataSet
   #                 off with `false` will be excluded in the result.
   #         false: When the block returns false for a given node that node is taken out of the results
   #                this inludes its children, unless the option `orphan_strategy` was set to `:adopt` in
-  #                which case the children will be filtered using the same block and appended to first ancestor
+  #                which case the children will be filtered using the same block & appended to first ancestor
   #                node that was not excluded by the filter.
   #
   def filter(leaf_label_id = nil, keep_leafs: false, orphan_strategy: :destroy, &block)
-    fail ArgumentError, 'No block and no leaf_label_id passed' if !block_given? && leaf_label_id.nil?
+    raise ArgumentError, 'No block and no leaf_label_id passed' if !block_given? && leaf_label_id.nil?
 
     unless data_array?
-      unless block_given?
-        return self.dup if self.label.id == leaf_label_id
-      else
-        return self.dup if yield(self.dup, self.dup)
+      if block_given?
+        return dup if yield(dup, dup)
+      elsif label.id == leaf_label_id
+        return dup
       end
 
       return []
     end
 
-    return self.dup if self.data.empty?
+    return dup if self.data.empty?
 
-    self.data.each_with_object(DataSet.new(label: label.deep_dup, data: nil, parent: parent, id: id)) do |set, parent_set|
-      if block_given?
-        condition_met = yield(parent_set, set)
+    new_data_set = DataSet.new(label: label.deep_dup, data: nil, parent: parent, id: id)
+    self.data.each_with_object(new_data_set) do |set, parent_set|
+      condition_met = if block_given?
+        yield(parent_set, set)
       else
-        condition_met = set.leaf? ? (set.label.id == leaf_label_id) : nil
+        set.leaf? ? (set.label.id == leaf_label_id) : nil
       end
 
       set_dup = set.deep_dup
@@ -158,14 +166,20 @@ class DataSet
         parent_set.add_item(set_dup)
       # Complex looking clause, but useful for performance and DRY-ness
       elsif set.data_array? && (condition_met.nil? || (condition_met == false && orphan_strategy == :adopt))
-        deep_filter_result = set_dup.filter(leaf_label_id, keep_leafs: keep_leafs, orphan_strategy: orphan_strategy, &block)
+        deep_filter_result = set_dup.filter(
+          leaf_label_id,
+          keep_leafs: keep_leafs,
+          orphan_strategy: orphan_strategy,
+          &block
+        )
 
         # Here is where either the taking along or adopting of nodes happens
         if deep_filter_result.data && !deep_filter_result.data.empty?
           # Filtering underlying children and adding the potential filter result to parent.
           parent_set.add_item(deep_filter_result) if condition_met.nil?
 
-          # We are losing the node, but since 'orphan_strategy' == :adopt we will adopt the orphans that match the filter
+          # We are losing the node, but since 'orphan_strategy' == :adopt we will adopt the orphans
+          # that match the filter
           deep_filter_result.children.each { |c| parent_set.add_item(c) } if condition_met == false
         end
       # We are indifferent to the match (nil), but since the node is a leaf we will keep it
@@ -179,6 +193,7 @@ class DataSet
     return super if block_given? # It recursively searches descendants for data set matching block
     return self if id == subtree_id
     return nil unless data_array?
+
     data.each do |child|
       match = child.find(subtree_id)
       return match if match
@@ -187,25 +202,14 @@ class DataSet
   end
 
   def find_by(query)
-    return find { |s| s.to_comparable_h.deep_merge(query) == s.to_comparable_h }
+    find { |s| s.to_comparable_h.deep_merge(query) == s.to_comparable_h }
   end
 
   def to_comparable_h
-    ch = {
-      id: self.id,
-    }
-
-    ch[:data] = data unless data_array?
-
-    if label
-      ch[:label] = {
-        id: label.id,
-        name: label.name,
-        meta: label.meta.to_h,
-      }
+    { id: id }.tap do |ch|
+      ch[:data] = data unless data_array?
+      ch[:label] = { id: label.id, name: label.name, meta: label.meta.to_h } if label
     end
-
-    ch
   end
 
   def <=>(other)
@@ -216,13 +220,28 @@ class DataSet
     return -1 if !data_array? && other.data_array?
     return label.id <=> other.label.id if label && other.label && label.id <=> other.label.id
     return data.size <=> other.data.size if data_array? && other.data_array?
+
     data <=> other.data
   end
 
   # == is used for comparison of two instances directly
   def ==(other)
-    other_data = other.data.nil? ? nil : (other.data.is_a?(Enumerable) ? other.data.sort : other.data )
-    own_data = data.nil? ? nil : (data.is_a?(Enumerable) ? data.sort : data )
+    other_data = if other.data.nil?
+      nil
+    elsif other.data.is_a?(Enumerable)
+      other.data.sort
+    else
+      other.data
+    end
+
+    own_data = if data.nil?
+      nil
+    elsif data.is_a?(Enumerable)
+      data.sort
+    else
+      data
+    end
+
     other.label == label && other_data == own_data
   end
 
@@ -238,12 +257,16 @@ class DataSet
 
   def deep_dup
     new_set = DataSet.new(id: id)
-    new_set.label = DataSet::Label.new(dup_value(label.name), id: dup_value(label.id), meta: label.meta.marshal_dump) if label
-
-    if data_array?
-      new_set.data = children.map(&:deep_dup)
+    if label
+      label_name = dup_value(label.name)
+      label_id = dup_value(label.id)
+      label_metadata = label.meta.marshal_dump
+      new_set.label = DataSet::Label.new(label_name, id: label_id, meta: label_metadata)
+    end
+    new_set.data = if data_array?
+      children.map(&:deep_dup)
     else
-      new_set.data = data
+      data
     end
 
     new_set
@@ -255,7 +278,8 @@ class DataSet
   end
 
   def value
-    fail NotImplementedError, 'DataSet is not a leaf and thus has no value' unless leaf?
+    raise NotImplementedError, 'DataSet is not a leaf and thus has no value' unless leaf?
+
     data
   end
 
@@ -266,21 +290,24 @@ class DataSet
   def sum
     # Leafs are considered a sum of their underlying data_sets,
     # therefore we can just sum the leafs if present.
-    return value == [] ? nil : value if leaf? # TODO: Make redundant by not allowing [] in `data` to begin with
+    return value == [] ? nil : value if leaf? # TODO: Make redundant by not allowing [] in `data`
+
     values = (leafs.any? ? leafs.map(&:value) : children.map(&:sum)).compact
     return nil if values.empty?
+
     values.inject(&:+)
   end
 
   def child_sum(by_labels: nil, by_leaf_labels: false)
     raise 'choose either `by_leaf_labels` or `by_labels`' if by_leaf_labels == true && !by_labels.nil?
+
     by_labels = leaf_labels if by_leaf_labels
 
     children.map do |child|
-      if by_labels.nil?
-        values = child.sum
+      values = if by_labels.nil?
+        child.sum
       else
-        values = by_labels.map do |label|
+        by_labels.map do |label|
           [label, child.filter(label.id)&.sum]
         end
       end
@@ -292,12 +319,14 @@ class DataSet
   def average
     values = [reducable_values].flatten.compact
     return nil if values.empty?
+
     (values.inject(&:+).to_f / values.size).to_f
   end
 
   def reducable_values(set = nil)
     set ||= self
     return set.children.map { |c| reducable_values(c) } if set.data_array?
+
     set.data
   end
 
@@ -308,43 +337,44 @@ class DataSet
   end
 
   def transform_values!(&block)
-    if data_array?
-      self.data = data.map { |d| d.transform_values!(&block) }
+    self.data = if data_array?
+      data.map { |d| d.transform_values!(&block) }
     else
-      self.data = yield(value, self)
+      yield(value, self)
     end
     self
   end
 
   def merge(other_data_set, &block)
-    merged_data_set = dup
-    if data_array? && other_data_set.data_array? # Merge sets
-      other_children = other_data_set.children.dup
-      merged_children = children.map do |child|
-        other_child = other_children.find { |ods| ods.label == child.label }
-        if other_child
-          other_children.delete(other_child)
-          child.merge(other_child, &block)
-        else
-          child
+    dup.tap do |merged_data_set|
+      if data_array? && other_data_set.data_array? # Merge sets
+        other_children = other_data_set.children.dup
+        merged_children = children.map do |child|
+          other_child = other_children.find { |ods| ods.label == child.label }
+          if other_child
+            other_children.delete(other_child)
+            child.merge(other_child, &block)
+          else
+            child
+          end
         end
+        # The remaining other children (without matching child in this data set)
+        merged_children += other_children
+        merged_data_set.data = merged_children
+      elsif !data_array? && !other_data_set.data_array? # Merge values
+        merged_data_set.data = if block_given? # Combine data using block
+          yield(label, value, other_data_set.value)
+        else # Simply overwrite data with other data
+          other_data_set.value
+        end
+      elsif data.nil? || other_data_set.data.nil?
+        self.data = [] if data.nil?
+        other_data_set.data = [] if other_data_set.data.nil?
+        return merge(other_data_set, &block)
+      else
+        raise ArgumentError, "Can't merge array DataSet with value DataSet"
       end
-      merged_children += other_children # The remaining other children (without matching child in this data set)
-      merged_data_set.data = merged_children
-    elsif !data_array? && !other_data_set.data_array? # Merge values
-      if block_given? # Combine data using block
-        merged_data_set.data = yield(label, value, other_data_set.value)
-      else # Simply overwrite data with other data
-        merged_data_set.data = other_data_set.value
-      end
-    elsif data.nil? || other_data_set.data.nil?
-      self.data = [] if data.nil?
-      other_data_set.data = [] if other_data_set.data.nil?
-      return self.merge(other_data_set, &block)
-    else
-      fail ArgumentError, "Can't merge array DataSet with value DataSet"
     end
-    merged_data_set
   end
 
   def data_array?
@@ -352,19 +382,9 @@ class DataSet
   end
 
   def nice_inspect(level = 0, final_s: '')
-    prefix = ''
+    prefix = root? ? '* ' : (' ' * level * 3) + '|- '
+    node_s = label ? "#{prefix}#{label.name}" : "#{prefix} (no label)"
 
-    if root?
-      prefix << '* '
-    else
-      prefix << (' ' * (level) * 3) + '|- '
-    end
-
-    if label
-      node_s = "#{prefix}#{label.name}"
-    else
-      node_s = "#{prefix} (no label)"
-    end
     node_s += ": #{value}" if leaf?
     final_s += "#{node_s} \n"
 
