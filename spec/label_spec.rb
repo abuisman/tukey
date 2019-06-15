@@ -1,10 +1,12 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe DataSet::Label do
   subject { DataSet::Label.new('example', id: 'generic') }
-  %w(id name).each do |att|
+  %w[id name].each do |att|
     att = att.to_sym
-    it "has a method called att" do
+    it 'has a method called att' do
       expect(subject.methods.include?(att)).to eq true
     end
   end

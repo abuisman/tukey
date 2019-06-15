@@ -1,0 +1,41 @@
+require: rubocop-performance
+
+AllCops:
+  Exclude:
+    - 'lib/vendor/**/*'
+
+Style/TrailingCommaInHashLiteral:
+  EnforcedStyleForMultiline: consistent_comma
+
+Metrics/MethodLength:
+  Enabled: false
+
+Metrics/AbcSize:
+  Enabled: false
+
+Metrics/ClassLength:
+  Enabled: false
+
+Metrics/CyclomaticComplexity:
+  Enabled: false
+
+Metrics/PerceivedComplexity:
+  Enabled: false
+
+Metrics/BlockLength:
+  Enabled: false
+
+Metrics/LineLength:
+  Max: 110
+  Exclude:
+    - 'spec/**/*'
+    - tukey.gemspec
+
+Layout/IndentFirstArrayElement:
+  EnforcedStyle: consistent
+
+Layout/EndAlignment:
+  EnforcedStyleAlignWith: variable
+
+Style/Documentation:
+  Enabled: false

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'ostruct'
 
 class DataSet
@@ -9,7 +11,8 @@ class DataSet
     def initialize(name, id: nil, meta: {})
       @name = name
       @id = id || name
-      fail ArgumentError, 'DataSet::Label meta must be a Hash' unless meta.is_a?(Hash)
+      raise ArgumentError, 'DataSet::Label meta must be a Hash' unless meta.is_a?(Hash)
+
       @meta = OpenStruct.new(meta)
     end
 
@@ -30,9 +33,9 @@ class DataSet
 
     def deep_dup
       label = dup
-      id = id.dup if id
-      name = name.dup if name
-      meta = meta.dup if meta
+      self.id = id.dup if id
+      self.name = name.dup if name
+      self.meta = meta.dup if meta
       label
     end
   end
